@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Common">
+    <resultMap id="tableMap" type="commonVO">
+        <result property="table_name"     	 		column="TABLE_NAME" />
+        <result property="comments"     	 		column="COMMENTS" />
+        <result property="table_name_co"     	 	column="TABLE_NAME_CO" />
+        <collection property="list"             	column="{table_name=TABLE_NAME}" select="selectCol"/>
+    </resultMap>
+
+    <select id="selectHierCodeList" parameterType="commonVO" resultType="commonVO">
+        /* Common.selectHierCodeList : 계층코드 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        <![CDATA[
+        SELECT A.*, COUNT(1) OVER() TOT FROM (
+            SELECT  GRP_ID, CODE, CODE_NM,
+                    SUBSTR(SYS_CONNECT_BY_PATH(CODE_NM, ' > '), 4) CODE_DC, USE_AT, CODE_SN,
+                    UPR_CODE, CRTE_USER_ID, CRTE_DTTM,
+                    UPDT_USER_ID, UPDT_DTTM, LEVEL LVL
+              FROM CYL_CMM_0004_TC
+            WHERE GRP_ID = #{grp_id}
+            START WITH UPR_CODE = '0'
+            CONNECT BY PRIOR CODE = UPR_CODE
+            ORDER SIBLINGS BY CODE_SN
+          ) A
+        ]]>
+        <if test="cond_code_nm != null and cond_code_nm != ''">
+            WHERE INSTR(UPPER(REPLACE(CODE_NM, ' ', '')), UPPER(REPLACE(#{cond_code_nm}, ' ', ''))) > 0
+        </if>
+        <include refid="CylCmm.orderby" />
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+
+    <select id="selectTab" parameterType="commonVO" resultMap="tableMap">
+        SELECT TABLE_NAME, COMMENTS TABLE_NAME_CO FROM USER_TAB_COMMENTS
+        WHERE TABLE_TYPE = 'TABLE'
+        AND INSTR(TABLE_NAME, 'BIN$') = 0
+        AND TABLE_NAME not in ('TMP')
+        ORDER BY TABLE_NAME
+    </select>
+
+    <select id="selectCol" parameterType="commonVO" resultType="paramMap">
+        SELECT TABLE_NAME, TABLE_NAME_CO, COLUMN_ID, COLUMN_NAME, COLUMN_NAME_CO, DATA_TYPE, NULLABLE , COL_PK, FK,'' COL_DEFAULT
+        FROM
+        (
+        SELECT A.TABLE_NAME
+        , B.COMMENTS AS TABLE_NAME_CO
+        , C.COLUMN_ID
+        , C.COLUMN_NAME
+        , D.COMMENTS AS COLUMN_NAME_CO
+        , C.DATA_TYPE || CASE WHEN C.DATA_TYPE IN ('VARCHAR2','CHAR')          THEN ' (' || C.CHAR_LENGTH || ' Byte)'
+        WHEN C.DATA_TYPE = 'NUMBER' AND C.DATA_SCALE > 0 THEN ' (' || C.DATA_PRECISION ||','|| C.DATA_SCALE ||')'
+        WHEN C.DATA_TYPE = 'NUMBER' AND C.DATA_SCALE = 0 THEN ' (' || C.DATA_PRECISION ||')'
+        ELSE '' END AS DATA_TYPE
+        , C.NULLABLE
+        , (SELECT CONSTRAINT_TYPE
+        FROM USER_CONS_COLUMNS Y
+        , USER_CONSTRAINTS Z
+        WHERE Y.TABLE_NAME      = Z.TABLE_NAME
+        AND Y.CONSTRAINT_NAME = Z.CONSTRAINT_NAME
+        AND Z.CONSTRAINT_TYPE = 'P'
+        AND Y.TABLE_NAME      = A.TABLE_NAME
+        AND Y.COLUMN_NAME     = C.COLUMN_NAME) AS COL_PK
+        , E.FK
+        FROM USER_TABLES       A
+        INNER JOIN  USER_TAB_COMMENTS B
+        ON A.TABLE_NAME  = B.TABLE_NAME
+        INNER JOIN   USER_TAB_COLUMNS  C
+        ON C.TABLE_NAME  = A.TABLE_NAME
+        INNER JOIN   USER_COL_COMMENTS D
+        ON D.TABLE_NAME  = A.TABLE_NAME
+        AND D.COLUMN_NAME = C.COLUMN_NAME
+        LEFT OUTER JOIN (SELECT Y.TABLE_NAME, Y.COLUMN_NAME, 'F' FK
+        FROM USER_CONS_COLUMNS Y
+        , USER_CONSTRAINTS Z
+        WHERE Y.TABLE_NAME      = Z.TABLE_NAME
+        AND Y.CONSTRAINT_NAME = Z.CONSTRAINT_NAME
+        AND CONSTRAINT_TYPE = 'R'
+        ORDER BY Y.TABLE_NAME, Y.CONSTRAINT_NAME, POSITION) E
+        ON A.TABLE_NAME = E.TABLE_NAME
+        AND C.COLUMN_NAME = E.COLUMN_NAME
+        )
+        WHERE TABLE_NAME = #{table_name}
+        ORDER BY TABLE_NAME, COLUMN_ID
+    </select>
+
+</mapper>

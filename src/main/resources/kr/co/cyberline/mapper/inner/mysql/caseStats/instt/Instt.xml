@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Instt">
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+        SELECT REQST_TRGET_S
+		     , DATE_FORMAT(B.CRTE_DTTM, '%Y') AS YEAR
+		     , COUNT(*) AS CNT
+		  FROM CYL_KAIT_TRUBL_MDAT_DTL A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+									     ON A.TRUBL_MDAT_NO = B.MAPNG_KEY
+		                                 AND B.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+		                                 AND B.USE_YN = 'Y'
+		 WHERE REQST_TRGET_S IS NOT NULL
+		   AND DATE_FORMAT(B.CRTE_DTTM, '%Y') BETWEEN (#{condYear}-4) AND #{condYear}
+		 GROUP BY REQST_TRGET_S, DATE_FORMAT(B.CRTE_DTTM, '%Y');
+    </select>
+    
+	<select id="insttList" parameterType="paramMap" resultType="paramMap">
+        SELECT A.CODE AS L_CODE
+		     , A.CODE_NM AS L_NM
+		     , B.CODE AS M_CODE
+		     , B.CODE_NM AS M_NM
+		     , C.CODE AS S_CODE
+		     , C.CODE_NM AS S_NM
+		  FROM CYL_CMM_0004_TC A INNER JOIN CYL_CMM_0004_TC B
+								 ON A.CODE = B.UPR_CODE
+		                         AND B.GRP_ID = 'INSTT'
+		                         INNER JOIN CYL_CMM_0004_TC C
+								 ON B.CODE = C.UPR_CODE
+		                         AND C.GRP_ID = 'INSTT'
+		 WHERE A.GRP_ID = 'INSTT'
+		   AND A.UPR_CODE = '0'
+		 ORDER BY A.CODE_SN, B.CODE_SN, C.CODE_SN
+    </select>
+</mapper>

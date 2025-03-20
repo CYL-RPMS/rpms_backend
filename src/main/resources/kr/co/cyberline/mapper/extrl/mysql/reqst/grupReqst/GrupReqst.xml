@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="GrupReqst">
+ 	<insert id="create" parameterType="paramMap">
+	    	<selectKey order="BEFORE" keyProperty="trubl_mdat_no" resultType="String">
+				SELECT F_CREATE_TRUBL_MDAT_NO() AS trubl_mdat_no;
+			</selectKey>
+			
+			INSERT INTO 
+				CYL_KAIT_TRUBL_MDAT_MST (
+					TRUBL_MDAT_NO
+					, TRUBL_MDAT_SE
+					, INOUT_SE
+					, NM
+					, BRTHDY
+					, CTTPC
+					, EMAIL
+					, ZIP
+					, ADRES
+					, DETAIL_ADRES
+					, P_NM
+					, P_URL
+					, P_CTTPC
+					, P_EMAIL
+					, P_ZIP
+					, P_ADRES
+					, P_DETAIL_ADRES
+					, TREDE
+					, CHARGER_ID
+					, STTUS
+					, REQST_REASON
+					, DEMAND_MATTER
+				)
+				VALUES (
+					#{trubl_mdat_no}
+					, 'GRUP'
+					, 'E'
+					, #{nm}
+					, #{brthdy}
+					, #{cttpc}
+					, #{email}
+					, #{zip}
+					, #{adres}
+					, #{detail_adres}
+					, #{p_nm}
+					, #{p_url}
+					, #{p_cttpc}
+					, #{p_email}
+					, #{p_zip}
+					, #{p_adres}
+					, #{p_detail_adres}
+					, #{trede}
+					, #{charger_id}
+					, 'TM001' 
+					, #{reqst_reason}
+					, #{demand_matter}
+				)
+				;
+					
+			INSERT INTO 
+				CYL_CMM_DB_USE_MAPNG ( 
+					MAPNG_KEY
+					, MAPNG_TABLE
+					, USE_YN
+					, CRTE_USER_ID 
+					, CRTE_DTTM
+				)
+	    		VALUES (
+	    			#{trubl_mdat_no}
+	    			, 'CYL_KAIT_TRUBL_MDAT_MST'
+	    			, 'Y'
+	    			, #{login_user_id}
+	    			, NOW()
+	    		)
+	    		;
+			
+			INSERT INTO 
+				CYL_KAIT_TRUBL_MDAT_DTL (
+					TRUBL_MDAT_NO 
+					, NM
+					, BRTHDY
+					, CTTPC
+					, EMAIL
+					, ZIP
+					, ADRES
+					, DETAIL_ADRES
+					, RELATE
+					, RELATE_RELTIV
+					, D_NM
+					, D_BRTHDY
+					, D_CTTPC
+					, D_EMAIL
+					, D_ZIP
+					, D_ADRES
+					, D_DETAIL_ADRES
+					, R_NM
+					, R_CTTPC
+					, R_EMAIL
+					, R_ZIP
+					, R_ADRES
+					, R_DETAIL_ADRES
+					, ON_OFF_SE
+				)
+				VALUES (
+					#{trubl_mdat_no}
+					, #{a_nm}
+					, #{a_brthdy}
+					, #{a_cttpc}
+					, #{a_email}
+					, #{a_zip}
+					, #{a_adres}
+					, #{a_detail_adres}
+					, #{relate}
+					, #{relate_reltiv}
+					, #{d_nm}
+					, #{d_brthdy}
+					, #{d_cttpc}
+					, #{d_email}
+					, #{d_zip}
+					, #{d_adres}
+					, #{d_detail_adres}
+					, #{r_nm}
+					, #{r_cttpc}
+					, #{r_email}
+					, #{r_zip}
+					, #{r_adres}
+					, #{r_detail_adres}
+					, 'OFF'
+				)
+				;
+			
+			<if test="sreqList != null and sreqList != ''">
+		   		<foreach separator="" item="vo" index="i" collection="sreqList">
+		   			INSERT INTO 
+		   				CYL_KAIT_ADD_APPLCNT_INFO (
+							TRUBL_MDAT_NO
+							, SN
+							, NM
+							, URL
+							, CTTPC
+							, EMAIL
+							, ZIP
+							, ADRES
+							, DETAIL_ADRES)
+					VALUES (
+						#{trubl_mdat_no}
+						,(SELECT IFNULL(MAX(SN)+1,1)AS SN FROM CYL_KAIT_ADD_APPLCNT_INFO B)
+					    , #{vo.nm}
+					    , #{vo.url}
+					    , #{vo.cttpc}
+					    , #{vo.email}
+					    , #{vo.zip}
+					    , #{vo.adres}
+					    , #{vo.detail_adres}
+				    );
+		   		</foreach>
+	   		</if>
+	   		
+	   		<if test="group_file_list != null and group_file_list != ''">
+				/* --------- 단체첨부파일 */
+	   			<foreach separator="" item="vo" index="i" collection="group_file_list">
+				INSERT INTO
+					CYL_CMM_FILE_MAPNG (
+						MAPNG_KEY
+						,MAPNG_TABLE
+						,ATCH_FILE_ID
+						,COLUNM_NM
+						,SN
+						,CRTE_USER_ID
+						,CRTE_DTTM
+					) VALUES (
+						#{trubl_mdat_no}
+						,'CYL_KAIT_TRUBL_MDAT_MST'
+						,#{vo.ATCH_FILE_KEY}
+						,#{vo.COLUNM_NM}
+						,1
+						,#{login_user_id}
+						,NOW()
+					); 
+				</foreach>
+			</if>
+			<if test="istry_file_list != null and istry_file_list != ''">
+				/* --------- 단체 당사자리스트 첨부파일 */
+	   			<foreach separator="" item="vo" index="i" collection="istry_file_list">
+				INSERT INTO
+					CYL_CMM_FILE_MAPNG (
+						MAPNG_KEY
+						,MAPNG_TABLE
+						,ATCH_FILE_ID
+						,COLUNM_NM
+						,SN
+						,CRTE_USER_ID
+						,CRTE_DTTM
+					) VALUES (
+						#{trubl_mdat_no}
+						,'CYL_KAIT_TRUBL_MDAT_MST'
+						,#{vo.ATCH_FILE_KEY}
+						,#{vo.COLUNM_NM}
+						,1
+						,#{login_user_id}
+						,NOW()
+					); 
+				</foreach>
+			</if>
+    </insert>
+</mapper>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Cntc">
+ 	<sql id="incCond">
+		  WHERE 'Y' = F_RET_USE_YN(M.TRUBL_MDAT_NO,'CYL_KAIT_TRUBL_MDAT_MST')
+		<if test="nm != null and nm != ''">
+		  AND M.NM LIKE CONCAT('%', #{nm}, '%')
+		</if>
+		<if test="p_nm != null and p_nm != ''">
+		  AND M.P_NM LIKE CONCAT('%', #{p_nm}, '%')
+		</if>
+		<if test="trubl_mdat_no != null and trubl_mdat_no != ''">
+		  AND M.TRUBL_MDAT_NO LIKE CONCAT('%', #{trubl_mdat_no}, '%')
+		</if>
+	</sql>
+
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+         /* Rcept.list : 접수/배분*/
+        <include refid="CylCmm.prefixPagination" />
+				SELECT M.TRUBL_MDAT_NO
+					  ,M.TRUBL_MDAT_SE
+					  ,M.NM
+					  ,M.BRTHDY
+					  ,M.CTTPC
+					  ,M.EMAIL
+					  ,M.ZIP
+					  ,M.ADRES
+					  ,M.DETAIL_ADRES
+					  ,M.P_NM
+					  ,M.P_URL
+					  ,M.P_CTTPC
+					  ,M.P_EMAIL
+					  ,M.P_ZIP
+					  ,M.P_ADRES
+					  ,M.P_DETAIL_ADRES
+					  ,M.STTUS
+					  ,DATE_FORMAT(M.TREDE, '%Y-%m-%d') AS TREDE
+					  ,M.CHARGER_ID
+					  ,M.STTUS AS M_STATUS
+					  ,M.REQST_REASON
+					  ,M.DEMAND_MATTER
+					  ,M.DEMAND_MATTER_ITEM
+					  ,M.DM_TY_L
+					  ,M.DM_TY_M
+					  ,M.DM_TY_S
+					  ,F_COMM_SCLSRT_CODE_NM('DM_TY',M.DM_TY_L) AS DM_TY_L_NM
+				      ,F_COMM_SCLSRT_CODE_NM('DM_TY',M.DM_TY_M) AS DM_TY_M_NM
+				      ,F_COMM_SCLSRT_CODE_NM('DM_TY',M.DM_TY_S) AS DM_TY_S_NM
+					  ,MP.USE_YN
+					  ,MP.CRTE_USER_ID
+					  ,DATE_FORMAT(MP.CRTE_DTTM, '%Y-%m-%d') AS CRTE_DTTM
+					  ,MP.UPDT_USER_ID
+					  ,DATE_FORMAT(MP.UPDT_DTTM, '%Y-%m-%d') AS UPDT_DTTM
+					  ,F_COMM_USER_NM(M.CHARGER_ID) AS CHARGER_NM
+					  ,M.INFR_TY
+				      ,M.REQST_TRGET
+				      ,M.INCDNT_DC
+				      ,M.CI
+				      ,M.P_CI
+					  ,(
+					   SELECT COUNT(*)
+					 	FROM CYL_KAIT_TRUBL_MDAT_MST M
+						  						 	   INNER JOIN CYL_CMM_DB_USE_MAPNG MP
+						  						 	   ON M.TRUBL_MDAT_NO = MP.MAPNG_KEY
+						  						 	   AND MP.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+						  						 	   AND MP.USE_YN = 'Y'
+				           <include refid="incCond"/>) AS TOT
+				  FROM CYL_KAIT_TRUBL_MDAT_MST M
+				  								 INNER JOIN CYL_CMM_DB_USE_MAPNG MP
+				  								 ON M.TRUBL_MDAT_NO = MP.MAPNG_KEY
+				  								 AND MP.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+				  								 AND MP.USE_YN = 'Y'
+			<include refid="incCond"/>
+			ORDER BY M.TRUBL_MDAT_NO DESC
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+   
+   <update id="modify" parameterType="paramMap" >
+   		<foreach separator="" item="vo" index="i" collection="trublNoList">
+	   		UPDATE CYL_KAIT_TRUBL_MDAT_MST SET
+	   		       P_CI = #{vo.P_CI}
+	   		 WHERE TRUBL_MDAT_NO = #{vo.TRUBL_MDAT_NO};
+	   		 
+   		 	UPDATE CYL_CMM_DB_USE_MAPNG SET
+			       UPDT_USER_ID =  #{login_user_id}
+    		      ,UPDT_DTTM = NOW()
+    		 WHERE MAPNG_KEY = #{vo.TRUBL_MDAT_NO}
+    		   AND MAPNG_TABLE= 'CYL_KAIT_TRUBL_MDAT_MST';
+   		</foreach>
+   </update>
+    
+   
+</mapper>

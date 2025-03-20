@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Mdat">
+	<!-- [통신분쟁]2021-06-07 / Kait-22 / by ihpark / 조정안 관리 검색 쿼리문 like로 변경 > incCond 검색조건 like로 변경-->
+ 	<sql id="incCond">
+		WHERE A.STTUS IN ('TM006')
+		<if test="cond_trubl_mdat_no != null and cond_trubl_mdat_no != ''">
+			AND A.TRUBL_MDAT_NO like CONCAT('%',#{cond_trubl_mdat_no},'%')
+		</if>
+		<if test="cond_mfcmm_cd != null and cond_mfcmm_cd != ''">
+		  AND A.TRUBL_MDAT_NO IN (SELECT TRUBL_MDAT_NO FROM CYL_KAIT_TRUBL_MDAT_EVL_MFCMM WHERE USER_ID = #{cond_mfcmm_cd})
+		</if>
+		<if test="condNm != null and condNm != ''">
+			AND A.NM like concat('%',#{condNm},'%')
+		</if>
+		<if test="condP_nm != null and condP_nm != ''">
+			AND ADA.P_NM_LIST like concat('%',#{condP_nm},'%')
+		</if>
+		<if test="condTrubl_mdat_no != null and condTrubl_mdat_no != ''">
+			AND A.TRUBL_MDAT_NO like concat('%',#{condTrubl_mdat_no},'%')
+		</if>
+		<if test="condReqst_reason != null and condReqst_reason != ''">
+			AND A.REQST_REASON like concat('%',#{condReqst_reason},'%')
+		</if>
+		<if test="cond_dm_ty_l != null and cond_dm_ty_l != ''">
+			AND A.DM_TY_L = #{cond_dm_ty_l}
+		</if>
+		<if test="cond_dm_ty_m != null and cond_dm_ty_m != ''">
+			AND A.DM_TY_M = #{cond_dm_ty_m}
+		</if>
+		<if test="cond_dm_ty_s != null and cond_dm_ty_s != ''">
+			AND A.DM_TY_S = #{cond_dm_ty_s}
+		</if>
+		<if test="condRoleCharger != null and condRoleCharger != ''">
+			AND A.CHARGER_ID = #{condRoleCharger}
+		</if>
+		<if test="cond_mdat_confm != null and cond_mdat_confm != ''">
+			AND A.MDAT_CONFM = #{cond_mdat_confm}
+		</if>
+	</sql>
+
+    <select id="list" parameterType="paramMap" resultType="paramMap">
+        <include refid="CylCmm.prefixPagination" />
+        	SELECT A.TRUBL_MDAT_NO
+				   ,A.TRUBL_MDAT_SE
+				   ,A.DM_TY_L
+				   ,A.DM_TY_M
+				   ,A.DM_TY_S
+				   ,F_COMM_SCLSRT_CODE_NM('DM_TY',A.DM_TY_L) AS DM_TY_L_NM
+			       ,F_COMM_SCLSRT_CODE_NM('DM_TY',A.DM_TY_M) AS DM_TY_M_NM
+			       ,F_COMM_SCLSRT_CODE_NM('DM_TY',A.DM_TY_S) AS DM_TY_S_NM
+				   ,A.NM
+                   ,ADA.P_NM_LIST AS P_NM
+				   ,A.REQST_REASON
+				   ,DATE_FORMAT(B.CRTE_DTTM, '%Y-%m-%d') AS REQ_DT
+				   ,DATE_FORMAT(A.TREDE, '%Y-%m-%d') AS TREDE
+				   ,DATE_FORMAT(A.RCEPT_DT, '%Y-%m-%d') AS RCEPT_DT
+				   ,F_COMM_USER_NM(A.CHARGER_ID) AS CHARGER_NM
+				   ,C.MFCMM_LIST
+				   ,(
+				   SELECT COUNT(1)
+				     FROM CYL_KAIT_TRUBL_MDAT_MST A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+									  		    	ON A.TRUBL_MDAT_NO = B.MAPNG_KEY
+									  		 		AND B.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+									  		 		AND USE_YN = 'Y'
+													INNER JOIN (SELECT TRUBL_MDAT_NO
+																	 , GROUP_CONCAT(BSNM.BSNM_NM SEPARATOR ',') AS P_NM_LIST
+																  FROM CYL_KAIT_ADD_APPLCNT_INFO AINFO INNER JOIN CYL_KAIT_BSNM BSNM
+																									   ON BSNM.BSNM_CD = AINFO.BSNM_CD
+																 GROUP BY TRUBL_MDAT_NO) ADA
+													ON A.TRUBL_MDAT_NO = ADA.TRUBL_MDAT_NO
+					<include refid="incCond"/>
+				   ) AS TOT
+			  FROM CYL_KAIT_TRUBL_MDAT_MST A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+									  		 ON A.TRUBL_MDAT_NO = B.MAPNG_KEY
+									  		 AND B.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+									  		 AND USE_YN = 'Y'
+									  		 LEFT OUTER JOIN (SELECT TRUBL_MDAT_NO, GROUP_CONCAT(CONCAT(USER_NM,' ',F_COMM_CODE_NM('CYL028',CLSF)) ORDER BY CLSF ASC SEPARATOR <![CDATA['<br />']]>) AS MFCMM_LIST FROM CYL_KAIT_TRUBL_MDAT_EVL_MFCMM GROUP BY TRUBL_MDAT_NO) C
+									  		 ON A.TRUBL_MDAT_NO = C.TRUBL_MDAT_NO
+											 INNER JOIN (SELECT TRUBL_MDAT_NO
+															  , GROUP_CONCAT(BSNM.BSNM_NM SEPARATOR ',') AS P_NM_LIST
+														   FROM CYL_KAIT_ADD_APPLCNT_INFO AINFO INNER JOIN CYL_KAIT_BSNM BSNM
+																								ON BSNM.BSNM_CD = AINFO.BSNM_CD
+														  GROUP BY TRUBL_MDAT_NO) ADA
+											 ON A.TRUBL_MDAT_NO = ADA.TRUBL_MDAT_NO
+		<include refid="incCond" />
+  	 	<include refid="CylCmm.suffixPagination" />
+    </select>
+
+    <select id="view" parameterType="paramMap" resultType="paramMap">
+	  	SELECT B.TRUBL_MDAT_NO 
+	  		   ,C.CNFRNC_SJ 
+	  		   ,DATE_FORMAT(CONCAT(C.CNFRNC_DAY,' ', C.CNFRNC_HOUR,':',C.CNFRNC_MIN),'%Y-%m-%d %T') AS CNFRNC_TIME
+		       ,A.AGENDA_CN 
+	  	  FROM CYL_KAIT_AGENDA_MDAT A INNER JOIN CYL_KAIT_CNFRNC_AGENDA B
+	  	  							  ON A.AGENDA_NO =B.AGENDA_NO 
+	  	  							  INNER JOIN CYL_KAIT_CNFRNC C
+	  	  							  ON B.CNFRNC_NO =C.CNFRNC_NO 
+	  	 WHERE A.AGENDA_NO = #{agenda_no}
+	  	   AND A.CMSNER_NO = #{cmsner_no}
+    </select>
+    
+	<select id="mfcmmList" parameterType="paramMap" resultType="paramMap">
+		SELECT @ROWN := @ROWN+1 AS ROWN
+			   ,A.TRUBL_MDAT_NO
+			   ,A.USER_ID
+			   ,A.USER_NM
+			   ,A.CLSF
+			   ,A.ORDER_CN
+			   ,A.REASON_CN
+			   ,DATE_FORMAT(B.CRTE_DTTM, '%Y-%m-%d') AS CRTE_DTTM
+			   ,DATE_FORMAT(B.UPDT_DTTM, '%Y-%m-%d') AS UPDT_DTTM
+			   ,CASE WHEN A.ORDER_CN IS NULL AND A.REASON_CN IS NULL AND B.CRTE_DTTM IS NULL THEN '미등록'
+			   		WHEN B.CRTE_DTTM IS NULL THEN '임시저장'
+			   		ELSE '등록' END AS STTUS
+		  FROM CYL_KAIT_TRUBL_MDAT_EVL_MFCMM A LEFT OUTER JOIN CYL_CMM_DB_USE_MAPNG B
+		  									   ON CONCAT(A.TRUBL_MDAT_NO,' ',A.USER_ID) = B.MAPNG_KEY
+		  									   AND B.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_EVL_MFCMM'
+		  									   AND B.USE_YN = 'Y'
+		  									   JOIN (SELECT @ROWN := 0) R
+		 WHERE A.TRUBL_MDAT_NO = #{trubl_mdat_no}
+		 ORDER BY A.CLSF ASC
+	</select>
+    <update id="modify_delete" parameterType="paramMap">
+    	UPDATE CYL_CMM_DB_USE_MAPNG
+    	   SET UPDT_USER_ID = #{login_user_id}
+			   ,UPDT_DTTM = NOW()
+			   ,USE_YN = 'N'
+		 WHERE MAPNG_KEY = #{cmsner_no}
+		   AND MAPNG_TABLE = 'CYL_KAIT_CMSNER'
+    </update>
+	
+	<update id="modify" parameterType="paramMap">
+			UPDATE
+    		CYL_KAIT_AGENDA_MDAT	
+    		SET AGENDA_CN = #{agenda_cn}
+    		WHERE AGENDA_NO = #{agenda_no}
+    		  AND CMSNER_NO = #{user_id}
+    </update>
+    <!--[통신분쟁]2021-07-12 / Kait-39 / by ihpark / 조정안관리 피신청인 이름 나오지않는 오류 수정-->
+    <select id="mdatInfo" parameterType="paramMap" resultType="paramMap">
+		SELECT A.TRUBL_MDAT_NO
+			   ,A.USER_ID
+			   ,A.USER_NM
+			   ,A.CLSF
+			   ,A.ORDER_CN
+			   ,A.REASON_CN
+			   ,IFNULL(A.MDAT_DT,DATE_FORMAT(NOW(), '%Y-%m-%d')) AS MDAT_DT
+			   ,B.NM
+			   ,B.CTTPC
+			   ,B.ZIP
+			   ,B.ADRES
+			   ,B.DETAIL_ADRES
+			   -- ,B.P_NM
+			   ,case when BSNM.BSNM_CD is not null and BSNM.BSNM_CD != ''
+			    	 then BSNM.BSNM_NM
+			    	 else B.P_NM end as P_NM
+			   ,B.P_CTTPC
+			   ,B.P_ZIP
+			   ,B.P_ADRES
+			   ,B.P_DETAIL_ADRES
+			   ,B.MDAT_CONFM
+			   ,IFNULL(MPG.CRTE_DTTM,'Y') AS TMPR_CHK /*저장하였으면 임시저장 버튼 안보이게*/
+		  FROM CYL_KAIT_TRUBL_MDAT_EVL_MFCMM A INNER JOIN CYL_KAIT_TRUBL_MDAT_MST B
+		  									   ON A.TRUBL_MDAT_NO = B.TRUBL_MDAT_NO
+					  						   LEFT OUTER JOIN CYL_KAIT_BSNM BSNM
+											   ON B.BSNM_CD = BSNM.BSNM_CD
+											   LEFT OUTER JOIN CYL_CMM_DB_USE_MAPNG MPG
+		  									   ON CONCAT(A.TRUBL_MDAT_NO,' ',A.USER_ID) = MPG.MAPNG_KEY
+		  									   AND MPG.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_EVL_MFCMM'
+		  									   AND MPG.USE_YN = 'Y'
+		 WHERE A.TRUBL_MDAT_NO = #{trubl_mdat_no}
+		   AND A.USER_ID = #{user_id}
+    </select>
+    
+    <select id="mdatForm" parameterType="paramMap" resultType="paramMap">
+    	SELECT A.FORM_NM
+    		   ,A.ORDER_CN
+			   ,A.REASON_CN
+    	  FROM CYL_KAIT_TRUBL_MDAT_FORM A
+   	 	 WHERE A.FORM_CODE = #{form_code} 
+    </select>
+	<!--[통신분쟁]2021-08-02 / Kait-53 / by ihpark / 조정안 승인일자 오류 수정 -> 조정안 하단에 나오는 일자는 발급일자가 되어야 함 MDAT_DT 제거-->
+    <update id="mdatSave" parameterType="paramMap">
+    	UPDATE CYL_KAIT_TRUBL_MDAT_EVL_MFCMM
+    	   SET ORDER_CN =  #{order_cn}
+			   ,REASON_CN = #{reason_cn}
+		 WHERE TRUBL_MDAT_NO = #{trubl_mdat_no}
+		   AND USER_ID = #{user_id};
+		   
+		INSERT INTO 
+			CYL_CMM_DB_USE_MAPNG
+			(
+				MAPNG_KEY
+				,MAPNG_TABLE
+				,USE_YN
+				,CRTE_USER_ID
+				,CRTE_DTTM
+			) VALUES (
+				CONCAT(#{trubl_mdat_no},' ',#{user_id})
+				,'CYL_KAIT_TRUBL_MDAT_EVL_MFCMM'
+				,'Y'
+				,#{login_user_id}
+				,NOW()
+			) ON DUPLICATE KEY UPDATE
+		   		UPDT_USER_ID = #{login_user_id}
+		   		,UPDT_DTTM = NOW();
+
+		/*[통신분쟁]2021-08-23 / Kait-62 / by ihpark / 개인정보 관련 이력*/
+		INSERT INTO CYL_KAIT_INDVDL_ACTION_HIST(
+			  LOGIN_ID,
+			  IP,
+			  ACTION_DATE,
+			  P_SUBJECT,
+			  P_ACTION
+		) VALUES (
+			  #{private_login_id}
+			  , #{private_login_user_ip}
+			  , date_format(NOW(),'%Y-%m-%d %H:%i:%s')
+			  , concat('[',#{trubl_mdat_no},']')
+			  , '조정안 등록'
+		);
+    </update>
+
+	<update id="tmprSave" parameterType="paramMap">
+		/*Mdat.tmprSave 조정안 임시저장*/
+    	UPDATE CYL_KAIT_TRUBL_MDAT_EVL_MFCMM
+    	   SET ORDER_CN =  #{order_cn}
+			   ,REASON_CN = #{reason_cn}
+		 WHERE TRUBL_MDAT_NO = #{trubl_mdat_no}
+		   AND USER_ID = #{user_id};
+
+		/*[통신분쟁] 개인정보 관련 이력*/
+		INSERT INTO CYL_KAIT_INDVDL_ACTION_HIST(
+			  LOGIN_ID,
+			  IP,
+			  ACTION_DATE,
+			  P_SUBJECT,
+			  P_ACTION
+		) VALUES (
+			  #{private_login_id}
+			  , #{private_login_user_ip}
+			  , date_format(NOW(),'%Y-%m-%d %H:%i:%s')
+			  , concat('[',#{trubl_mdat_no},']')
+			  , '조정안 임시저장'
+		);
+    </update>
+
+	<update id="mdatRtrvl" parameterType="paramMap">
+		/*Mdat.mdatRtrvl 조정안 회수*/
+		DELETE FROM CYL_CMM_DB_USE_MAPNG
+		WHERE MAPNG_KEY = CONCAT(#{trubl_mdat_no},' ',#{user_id})
+		AND MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_EVL_MFCMM';
+
+		/*[통신분쟁] 개인정보 관련 이력*/
+		INSERT INTO CYL_KAIT_INDVDL_ACTION_HIST(
+			  LOGIN_ID,
+			  IP,
+			  ACTION_DATE,
+			  P_SUBJECT,
+			  P_ACTION
+		) VALUES (
+			  #{private_login_id}
+			  , #{private_login_user_ip}
+			  , date_format(NOW(),'%Y-%m-%d %H:%i:%s')
+			  , concat('[',#{trubl_mdat_no},']')
+			  , '조정안 회수'
+		);
+    </update>
+	<!--[통신분쟁]2021-08-02 / Kait-53 / by ihpark / 조정안 승인일자 오류 수정 -> 조정안 하단에 나오는 일자는 발급일자가 되어야 함 MDAT_DT NOW 추가-->
+    <update id="confm" parameterType="paramMap">
+    	UPDATE CYL_KAIT_TRUBL_MDAT_MST
+    	   SET MDAT_CONFM = #{mdat_confm}
+		 WHERE TRUBL_MDAT_NO = #{trubl_mdat_no};
+
+		<if test="mdat_confm != null and mdat_confm != ''">
+			UPDATE CYL_KAIT_TRUBL_MDAT_EVL_MFCMM
+				<choose>
+					<when test="'Y'.toString() == mdat_confm">
+						SET MDAT_DT = NOW()
+					</when>
+					<otherwise>
+						SET MDAT_DT = null
+					</otherwise>
+				</choose>
+			WHERE TRUBL_MDAT_NO = #{trubl_mdat_no};
+
+			<choose>
+				<when test="'Y'.toString() == mdat_confm">
+					CALL P_SMS_MULTI_INSERT4(
+					#{trubl_mdat_no}
+					,CONCAT('사건번호:', #{trubl_mdat_no},  ', 신청인 : ', (SELECT LEFT(TRIM(A.NM),CHAR_LENGTH(TRIM(A.NM))-1) FROM CYL_KAIT_TRUBL_MDAT_MST A WHERE A.TRUBL_MDAT_NO = #{trubl_mdat_no}),'*님 신청사건의 조정안이 등록 되었습니다. 조정안을 확인하시고, 동의 시 조정안수락서에 사인/도장(날인) 하여 등록(15일 이내)하여 주시기 바랍니다. 자세한 사항은 www.tdrc.kr > "나의 사건 조회" 화면 하단 ''조정서류'' 에서 확인하실 수 있습니다.')
+					);
+
+					<if test="bsnm_list != null and bsnm_list != ''">
+						<foreach separator="" item="vo" index="i" collection="bsnm_list">
+							INSERT INTO
+							CYL_CMM_SMS
+							(
+							SMS_NO
+							,SMS_SE
+							,MAPNG_KEY
+							,MAPNG_REFRN
+							,SMS_CN
+							,DSPTCH_F
+							,DSPTCH_M
+							,DSPTCH_L
+							,RECPTN_F
+							,RECPTN_M
+							,RECPTN_L
+							)
+							SELECT F_CREATE_SMS_NO()
+							,'SMS001'
+							,A.TRUBL_MDAT_NO
+							,A.STTUS
+							,CONCAT('사건번호:', #{trubl_mdat_no},  ', 신청인 : ', LEFT(TRIM(A.NM),CHAR_LENGTH(TRIM(A.NM))-1),'*님 신청사건의 조정안이 등록 되었습니다. 조정안을 확인하시고, 동의 시 조정안수락서에 사인/도장(날인) 하여 등록(15일 이내)하여 주시기 바랍니다. 자세한 사항은 www.tdrc.kr > "나의 사건 조회" 화면 하단 ''조정서류'' 에서 확인하실 수 있습니다.')
+							,F_SPLIT_STR(B.CODE_DC,'-',1)
+							,F_SPLIT_STR(B.CODE_DC,'-',2)
+							,F_SPLIT_STR(B.CODE_DC,'-',3)
+							,#{vo.cttpc_f}
+							,#{vo.cttpc_m}
+							,#{vo.cttpc_l}
+							FROM CYL_KAIT_TRUBL_MDAT_MST A LEFT OUTER JOIN CYL_CMM_0002_TC B
+							ON A.MDAT_PT = B.CODE
+							AND CODE_ID = 'CYL033'
+							WHERE A.TRUBL_MDAT_NO = #{trubl_mdat_no};
+						</foreach>
+					</if>
+				</when>
+				<otherwise>
+					/*승인취소시 임시저장 처리*/
+					DELETE FROM CYL_CMM_DB_USE_MAPNG
+					WHERE MAPNG_KEY LIKE CONCAT(#{trubl_mdat_no},'%')
+					AND MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_EVL_MFCMM';
+				</otherwise>
+			</choose>
+		</if>
+
+		UPDATE CYL_CMM_DB_USE_MAPNG
+		   SET UPDT_USER_ID = #{login_user_id}
+			   ,UPDT_DTTM = NOW()
+		 WHERE MAPNG_KEY = #{trubl_mdat_no}
+		   AND MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST';
+
+		/*[통신분쟁]2021-08-23 / Kait-62 / by ihpark / 개인정보 관련 이력*/
+		INSERT INTO CYL_KAIT_INDVDL_ACTION_HIST(
+			  LOGIN_ID,
+			  IP,
+			  ACTION_DATE,
+			  P_SUBJECT,
+			  P_ACTION
+		) VALUES (
+			  #{private_login_id}
+			  , #{private_login_user_ip}
+			  , date_format(NOW(),'%Y-%m-%d %H:%i:%s')
+			  , concat('[',#{trubl_mdat_no},']')
+			  , concat('조정안 승인(Y:승인/N:취소) : ',#{mdat_confm})
+		);
+    </update>
+</mapper>

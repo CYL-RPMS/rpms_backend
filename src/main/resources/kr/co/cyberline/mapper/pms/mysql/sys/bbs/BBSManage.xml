@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BBSManage">
+
+    <select id="selectBBSMasterList" parameterType="boardMasterVO" resultType="boardMasterVO">
+        /* BBSManage.selectBBSMasterList : 게시판 관리 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        <![CDATA[
+        SELECT
+            A.BBS_ID,  A.BBS_NM, A.BBS_INTRCN, A.BBS_TY_CODE, A.REPLY_POSBL_AT, A.FILE_ATCH_POSBL_AT,
+            A.ATCH_FILE_POSBL_NUMBER, A.ANSWER_POSBL_AT, A.USE_AT, A.CRTE_USER_ID, A.CRTE_DTTM,
+            A.UPDT_USER_ID, A.UPDT_DTTM,
+            (SELECT COUNT(*)
+               FROM CYL_CMM_0402_TN A
+              WHERE 1=1
+                ]]>
+                <if test="condReplyPosblAt != null and condReplyPosblAt != ''">
+                    AND A.REPLY_POSBL_AT = #{condReplyPosblAt}
+                </if>
+                <if test="condFileAtchPosblAt != null and condFileAtchPosblAt != ''">
+                    AND A.FILE_ATCH_POSBL_AT = #{condFileAtchPosblAt}
+                </if>
+                <if test="condAnswerPosblAt != null and condAnswerPosblAt != ''">
+                    AND A.ANSWER_POSBL_AT = #{condAnswerPosblAt}
+                </if>
+                <if test="condUseAt != null and condUseAt != ''">
+                    AND A.USE_AT = #{condUseAt}
+                </if>
+                <if test="searchType != null and searchType != ''">
+                    <if test="searchKeyword != null and searchKeyword != ''">
+                        <if test="searchType == '001'">
+                            AND INSTR(UPPER(REPLACE(A.BBS_ID, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+                        </if>
+                        <if test="searchType == '002'">
+                            AND INSTR(UPPER(REPLACE(A.BBS_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+                        </if>
+                    </if>
+                </if>
+            ) AS TOT
+        <![CDATA[
+        FROM CYL_CMM_0402_TN A
+        WHERE 1=1
+        ]]>
+        <if test="condReplyPosblAt != null and condReplyPosblAt != ''">
+            AND A.REPLY_POSBL_AT = #{condReplyPosblAt}
+        </if>
+        <if test="condFileAtchPosblAt != null and condFileAtchPosblAt != ''">
+            AND A.FILE_ATCH_POSBL_AT = #{condFileAtchPosblAt}
+        </if>
+        <if test="condAnswerPosblAt != null and condAnswerPosblAt != ''">
+            AND A.ANSWER_POSBL_AT = #{condAnswerPosblAt}
+        </if>
+        <if test="condUseAt != null and condUseAt != ''">
+            AND A.USE_AT = #{condUseAt}
+        </if>
+        <if test="searchType != null and searchType != ''">
+        	<if test="searchKeyword != null and searchKeyword != ''">
+	        	<if test="searchType == '001'">
+                    AND INSTR(UPPER(REPLACE(A.BBS_ID, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+	        	</if>
+	        	<if test="searchType == '002'">
+                    AND INSTR(UPPER(REPLACE(A.BBS_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+	        	</if>
+        	</if>
+        </if>
+        <include refid="CylCmm.orderby" />
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+
+    <select id="selectBBSMasterDetail" parameterType="boardMasterVO" resultType="boardMasterVO">
+        /* BBSManage.selectBBSMasterDetail : 게시판 관리 상세 조회 */
+        <![CDATA[
+        SELECT
+            A.BBS_ID,  A.BBS_NM, A.BBS_INTRCN, A.BBS_TY_CODE, A.REPLY_POSBL_AT, A.FILE_ATCH_POSBL_AT,
+            A.ATCH_FILE_POSBL_NUMBER, A.ANSWER_POSBL_AT, A.USE_AT, A.CRTE_USER_ID, A.CRTE_DTTM,
+            A.UPDT_USER_ID, A.UPDT_DTTM
+        FROM CYL_CMM_0402_TN A
+        WHERE BBS_ID = #{bbs_id}
+        ]]>
+    </select>
+
+    <insert id="insertBBSMaster" parameterType="boardMasterVO">
+        /* BBSManage.insertBBSMaster : 게시판 관리 등록 */
+        <![CDATA[
+        INSERT INTO CYL_CMM_0402_TN (
+            BBS_ID, BBS_NM, BBS_INTRCN, BBS_TY_CODE, REPLY_POSBL_AT, FILE_ATCH_POSBL_AT,
+		    ATCH_FILE_POSBL_NUMBER, ANSWER_POSBL_AT, USE_AT, CRTE_USER_ID, CRTE_DTTM
+        ) VALUES (
+            #{bbs_id}, #{bbs_nm}, #{bbs_intrcn}, #{bbs_ty_code}, #{reply_posbl_at}, #{file_atch_posbl_at},
+            #{atch_file_posbl_number}, #{answer_posbl_at}, #{use_at}, #{crte_user_id}, NOW()
+        )
+        ]]>
+    </insert>
+
+    <update id="updateBBSMaster" parameterType="boardMasterVO">
+        /* BBSManage.updateBBSMaster : 게시판 관리 수정 */
+        <![CDATA[
+          UPDATE CYL_CMM_0402_TN SET
+            BBS_NM = #{bbs_nm},
+            BBS_INTRCN = #{bbs_intrcn},
+            BBS_TY_CODE = #{bbs_ty_code},
+            REPLY_POSBL_AT = #{reply_posbl_at},
+            FILE_ATCH_POSBL_AT = #{file_atch_posbl_at},
+            ATCH_FILE_POSBL_NUMBER = #{atch_file_posbl_number},
+            ANSWER_POSBL_AT = #{answer_posbl_at},
+            USE_AT = #{use_at},
+            UPDT_USER_ID = #{updt_user_id},
+            UPDT_DTTM = NOW()
+          WHERE BBS_ID = #{bbs_id}
+        ]]>
+    </update>
+
+    <delete id="deleteBBSMaster" parameterType="boardMasterVO">
+        /* BBSManage.deleteBBSMaster : 게시판 관리 삭제 */
+        <![CDATA[
+        DELETE FROM CYL_CMM_0402_TN WHERE BBS_ID = #{bbs_id}
+        ]]>
+    </delete>
+
+    <select id="selectBBSArticleList" parameterType="boardVO" resultType="boardVO">
+        /* BBSManage.selectBBSArticleList : 게시물 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        <![CDATA[
+        SELECT A.*,
+                (SELECT COUNT(*)
+                   FROM CYL_CMM_0403_TN A
+                  WHERE A.BBS_ID = #{bbs_id}
+        ]]>
+                    <if test="use_at != null and use_at != ''">
+                        AND A.USE_AT = #{use_at}
+                    </if>
+                    <if test="searchType != null and searchType != ''">
+                        <if test="searchKeyword != null and searchKeyword != ''">
+                            <if test="searchType == '001'">
+                                AND INSTR(UPPER(REPLACE(A.NTT_SJ, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+                            </if>
+                            <if test="searchType == '002'">
+                                AND INSTR(UPPER(REPLACE(A.NTCR_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+                            </if>
+                        </if>
+                      </if>
+                ) AS TOT
+        <![CDATA[
+           FROM (
+                    SELECT
+                      A.BBS_ID, A.NTT_ID, A.NTT_SJ, A.PARNTS_NTT_ID, A.USE_AT, A.RDCNT, A.NTCE_BGNDE,
+                      A.NTCE_ENDDE, A.NTCR_ID, A.NTCR_NM, A.PASSWD, A.ATCH_FILE_ID, A.CRTE_USER_ID,
+                      A.CRTE_DTTM, A.UPDT_USER_ID, A.UPDT_DTTM, LEVEL AS LVL
+                    FROM ( SELECT BBS_ID, hierarchy_cyl_cmm_0403_tn(NTT_ID) AS NTT_ID, @level AS LEVEL
+                            FROM (SELECT @start_with := '0', @id := @start_with, @level := 0) vars
+                                , (SELECT B.NTT_ID, @NTT_ID := NTT_ID, B.BBS_ID, @group := BBS_ID
+                                   FROM CYL_CMM_0403_TN B
+                                   WHERE BBS_ID = #{bbs_id}
+                                   ]]>
+                                   <if test="use_at != null and use_at != ''">
+                                        AND USE_AT = #{use_at}
+                                   </if>
+                                    <![CDATA[
+                                   ) B
+                           WHERE @id IS NOT NULL
+                         ) D
+                      INNER JOIN cyl_cmm_0403_tn A ON A.NTT_ID = D.NTT_ID AND A.BBS_ID = D.BBS_ID
+                      ]]>
+
+                       <if test="searchType != null and searchType != ''">
+                           <if test="searchKeyword != null and searchKeyword != ''">
+                               <if test="searchType == '001'">
+                                    AND INSTR(UPPER(REPLACE(A.NTT_SJ, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+                               </if>
+                               <if test="searchType == '002'">
+                                   AND INSTR(UPPER(REPLACE(A.NTCR_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+                               </if>
+                           </if>
+                       </if>
+                ) A
+        WHERE 1=1
+
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+
+    <select id="selectBBSArticleDetail" parameterType="boardVO" resultType="boardVO">
+        /* BBSManage.selectBBSArticleDetail : 게시물 상세 조회 */
+        <![CDATA[
+        SELECT
+            A.BBS_ID, A.NTT_ID, A.NTT_SJ, A.NTT_CN, A.PARNTS_NTT_ID, A.USE_AT, A.RDCNT, A.NTCE_BGNDE,
+            A.NTCE_ENDDE, A.NTCR_ID, A.NTCR_NM, A.PASSWD, A.ATCH_FILE_ID, A.CRTE_USER_ID,
+	        A.CRTE_DTTM, A.UPDT_USER_ID, A.UPDT_DTTM
+        FROM CYL_CMM_0403_TN A
+        ]]>
+        WHERE A.BBS_ID = #{bbs_id} AND A.NTT_ID = #{ntt_id}
+    </select>
+
+    <insert id="insertBBSArticle" parameterType="boardVO">
+        /* BBSManage.insertBBSArticle : 게시물 등록 */
+        <![CDATA[
+        INSERT INTO CYL_CMM_0403_TN (
+		      BBS_ID, NTT_ID, NTT_SJ, NTT_CN, PARNTS_NTT_ID, USE_AT,
+		      RDCNT, NTCE_BGNDE, NTCE_ENDDE, NTCR_ID, NTCR_NM, PASSWD,
+		      ATCH_FILE_ID, CRTE_USER_ID, CRTE_DTTM
+	    ) VALUES (
+	          #{bbs_id}, #{ntt_id}, #{ntt_sj}, #{ntt_cn}, #{parnts_ntt_id}, 'Y',
+	          0, #{ntce_bgnde}, #{ntce_endde}, #{ntcr_id}, #{ntcr_nm}, #{passwd},
+	          #{atch_file_id}, #{crte_user_id}, NOW()
+	    )
+	    ]]>
+    </insert>
+
+    <update id="updateBBSArticle" parameterType="boardVO">
+        /* BBSManage.updateBBSArticle : 게시물 수정 */
+        <![CDATA[
+        UPDATE CYL_CMM_0403_TN SET
+             NTT_SJ = #{ntt_sj}
+           , NTT_CN = #{ntt_cn}
+           , USE_AT = 'Y'
+        ]]>
+        <if test="atch_file_id != null and atch_file_id != ''">
+            , ATCH_FILE_ID = #{atch_file_id}
+        </if>
+        <if test="ntcr_nm != null and ntcr_nm != ''">
+            , NTCR_NM = #{ntcr_nm}
+        </if>
+        <if test="passwd != null and passwd != ''">
+            , PASSWD = #{passwd}
+        </if>
+        <![CDATA[
+           , UPDT_USER_ID = #{updt_user_id}
+           , UPDT_DTTM = NOW()
+        WHERE BBS_ID = #{bbs_id} AND NTT_ID = #{ntt_id}
+        ]]>
+    </update>
+
+    <update id="updateBBSArticleReadCnt" parameterType="boardVO">
+        /* BBSManage.updateBBSArticleReadCnt : 게시물 조회수 증가 */
+        <![CDATA[
+        UPDATE CYL_CMM_0403_TN SET
+            RDCNT = (RDCNT + 1)
+        WHERE BBS_ID = #{bbs_id} AND NTT_ID = #{ntt_id}
+        ]]>
+    </update>
+
+    <update id="updateBBSArticleUseAt" parameterType="boardVO">
+        /* BBSManage.updateBBSArticleUseAt : 게시물 사용 여부 수정 */
+        <![CDATA[
+        UPDATE CYL_CMM_0403_TN SET
+            USE_AT = #{use_at},
+            UPDT_USER_ID = #{updt_user_id},
+            UPDT_DTTM = NOW()
+        WHERE BBS_ID = #{bbs_id} AND NTT_ID = #{ntt_id}
+        ]]>
+    </update>
+
+    <select id="selectBBSArticleCommentList" parameterType="commentVO" resultType="commentVO">
+        /* BBSManage.selectBBSArticleCommentList : 게시물 댓글 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        <![CDATA[
+        SELECT
+            A.BBS_ID, A.NTT_ID, A.ANSWER_NO, A.WRTER_ID, A.WRTER_NM, A.ANSWER, A.USE_AT,
+	        A.PASSWD, A.CRTE_USER_ID, A.CRTE_DTTM, A.UPDT_USER_ID, A.UPDT_DTTM,
+	        (SELECT COUNT(*)
+	           FROM CYL_CMM_0404_TN A
+              WHERE A.BBS_ID = #{bbs_id} AND A.NTT_ID = #{ntt_id} AND A.USE_AT = #{use_at}
+	         ) AS TOT
+        FROM CYL_CMM_0404_TN A
+        WHERE A.BBS_ID = #{bbs_id} AND A.NTT_ID = #{ntt_id} AND A.USE_AT = #{use_at}
+	    ]]>
+        <include refid="CylCmm.orderby" />
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+
+    <select id="selectBBSArticleCommentDetail" parameterType="commentVO" resultType="commentVO">
+        /* BBSmanage.selectBBSArticleCommentDetail : 게시물 댓글 상세 조회 */
+        <![CDATA[
+        SELECT
+            A.BBS_ID, A.NTT_ID, A.ANSWER_NO, A.WRTER_ID, A.WRTER_NM, A.ANSWER, A.USE_AT,
+	        A.PASSWD, A.CRTE_USER_ID, A.CRTE_DTTM, A.UPDT_USER_ID, A.UPDT_DTTM
+        FROM CYL_CMM_0404_TN A
+        WHERE A.BBS_ID = #{bbs_id} AND A.NTT_ID = #{ntt_id} AND A.ANSWER_NO = #{answer_no}
+	    ]]>
+    </select>
+
+    <insert id="insertBBSArticleComment" parameterType="commentVO">
+        <selectKey keyProperty="answer_no" resultType="java.lang.Integer" order="BEFORE">
+            <![CDATA[
+            SELECT IFNULL(MAX(ANSWER_NO), 0) + 1 AS ANSWER_NO
+            FROM CYL_CMM_0404_TN
+            WHERE BBS_ID = #{bbs_id} AND NTT_ID = #{ntt_id}
+            ]]>
+        </selectKey>
+        /* BBSManage.insertBBSArticleComment : 게시물 댓글 등록 */
+        <![CDATA[
+        INSERT INTO CYL_CMM_0404_TN (
+            BBS_ID, NTT_ID, ANSWER_NO, WRTER_ID, WRTER_NM, ANSWER,
+            USE_AT, PASSWD, CRTE_USER_ID, CRTE_DTTM
+	    ) VALUES (
+	        #{bbs_id}, #{ntt_id}, #{answer_no}, #{wrter_id}, #{wrter_nm}, #{answer},
+	        'Y', #{passwd}, #{crte_user_id}, NOW()
+	    )
+        ]]>
+    </insert>
+
+    <update id="updateBBSArticleComment" parameterType="commentVO">
+        /* BBSManage.updateBBSArticleComment : 게시물 댓글 수정 */
+        <![CDATA[
+        UPDATE CYL_CMM_0404_TN SET
+            ANSWER = #{answer},
+            UPDT_USER_ID = #{updt_user_id},
+            UPDT_DTTM = NOW()
+        WHERE BBS_ID = #{bbs_id} AND NTT_ID = #{ntt_id} AND ANSWER_NO = #{answer_no}
+        ]]>
+    </update>
+
+    <update id="updateBBSArticleCommentUseAt" parameterType="commentVO">
+        /* BBSManage.updateBBSArticleCommentUseAt : 게시물 댓글 사용여부 수정 */
+        <![CDATA[
+        UPDATE CYL_CMM_0404_TN SET
+            USE_AT = #{use_at}
+        WHERE BBS_ID = #{bbs_id} AND NTT_ID = #{ntt_id} AND ANSWER_NO = #{answer_no}
+        ]]>
+    </update>
+</mapper>

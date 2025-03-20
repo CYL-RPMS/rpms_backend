@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--[통신분쟁]2021-05-13 / Kait-11 / by ihpark / 내부>분쟁조정>요건서류 검토>신청인에게 보정 요구 시 보정에 소요되는 기간이 처리기한에 포함되지않도록 구현-->
+<mapper namespace="Revision">
+
+    <update id="revisnDateAdd">
+        update
+                cyl_kait_trubl_mdat_mst master,
+                (
+                select a.TRUBL_MDAT_NO , a.SN, a.PROCESS_SE , c.TREDE
+                from CYL_KAIT_TRUBL_MDAT_JOB_HIST a, cyl_kait_trubl_mdat_mst c
+                where sn = (select max(b.SN)
+                            from CYL_KAIT_TRUBL_MDAT_JOB_HIST b
+                            where a.TRUBL_MDAT_NO = b.TRUBL_MDAT_NO
+                            group by b.TRUBL_MDAT_NO
+                           )
+                  and a.PROCESS_SE ='A'
+                  and a.TRUBL_MDAT_NO = c.TRUBL_MDAT_NO
+                  and c.TREDE is not null
+                ) sub
+        set master.TREDE= date_add(sub.TREDE, interval 1 day)
+        where master.TRUBL_MDAT_NO = sub.TRUBL_MDAT_NO
+    </update>
+
+</mapper>

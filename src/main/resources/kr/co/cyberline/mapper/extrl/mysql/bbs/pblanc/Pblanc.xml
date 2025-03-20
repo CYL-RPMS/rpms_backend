@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Pblanc">
+ 	<sql id="incCond">
+		WHERE 'Y' =  F_RET_USE_YN(A.TRUBL_MDAT_NO,'CYL_KAIT_TRUBL_MDAT_PBLANC')
+		<if test="ctgry != null and ctgry != ''">
+			AND A.CTGRY = #{ctgry}
+		</if>
+		<if test="condNm != null and condNm != ''">
+			AND A.NM LIKE CONCAT('%',#{condNm},'%')
+		</if>
+		<if test="condP_nm != null and condP_nm != ''">
+		  	AND A.P_NM LIKE CONCAT('%',#{condP_nm},'%')
+		</if>
+		<if test="crte_dttm_str != null and crte_dttm_str != '' and crte_dttm_end != null and crte_dttm_end != ''">
+		  	AND DATE_FORMAT(C.CRTE_DTTM, '%Y-%m-%d') BETWEEN #{crte_dttm_str} AND #{crte_dttm_end}
+		</if>
+		<if test="condTrubl_mdat_no != null and condTrubl_mdat_no != ''">
+		  	AND A.TRUBL_MDAT_NO LIKE CONCAT('%',#{condTrubl_mdat_no},'%')
+		</if>
+		<if test="condReqst_reason != null and condReqst_reason != ''">
+		  	AND A.REQST_REASON LIKE CONCAT('%',#{condReqst_reason},'%')
+		</if>
+	</sql>
+    
+    <select id="list" parameterType="paramMap" resultType="paramMap">
+	    /* Pblanc.pblanAtch : 집단 분쟁조정 개시절차 공고 조회 */
+	    <include refid="CylCmm.prefixPagination" />
+		SELECT A.TRUBL_MDAT_NO
+			   ,A.INCDNT_NM
+			   ,A.P_NM
+			   ,A.P_ZIP
+			   ,A.P_ADRES
+			   ,A.P_DETAIL_ADRES
+			   ,A.SUMRY_ND_OBJET
+			   ,A.REQST_TRGET
+			   ,DATE_FORMAT(A.RQSTDT_STR, '%Y-%m-%d') AS RQSTDT_STR
+			   ,DATE_FORMAT(A.RQSTDT_END, '%Y-%m-%d') AS RQSTDT_END
+			   ,A.HMPG_APPLC_YN
+			   ,DATE_FORMAT(B.CRTE_DTTM, '%Y-%M-%D') as CRTE_DTTM
+		  FROM CYL_KAIT_TRUBL_MDAT_PBLANC A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+		  									ON A.TRUBL_MDAT_NO = B.MAPNG_KEY 
+		  									AND B.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_PBLANC'
+		 ORDER BY B.CRTE_DTTM DESC
+		 <include refid="CylCmm.suffixPagination" />
+    </select>
+</mapper>

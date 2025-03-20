@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ExtrlCmm">
+ 	<select id="codeList" parameterType="paramMap" resultType="paramMap">
+    	SELECT CODE
+		     , CODE_NM
+		  FROM CYL_CMM_0002_TC
+		 WHERE USE_AT = 'Y'
+		   AND CODE_ID = #{CODE_ID}
+    </select>
+
+	<select id="selectFileMapngList" parameterType="paramMap" resultType="paramMap">
+    	SELECT MAPNG_KEY
+				,MAPNG_TABLE
+				,ATCH_FILE_ID
+				,COLUNM_NM
+				,SN
+				,CM
+				,OTHBC_AT
+				,USE_AT
+		FROM CYL_CMM_FILE_MAPNG
+		 WHERE ATCH_FILE_ID = #{atch_file_id}
+    </select>
+
+	<select id="selectMyIncdnt" parameterType="paramMap" resultType="paramMap">
+    	SELECT COUNT(*) AS CNT
+		FROM CYL_KAIT_TRUBL_MDAT_MST A
+		LEFT OUTER JOIN ( SELECT TRUBL_MDAT_NO
+								, GROUP_CONCAT(BSNM.BIZRNO SEPARATOR ',') AS P_BIZRNO_LIST
+								, GROUP_CONCAT(BSNM.BSNM_NM SEPARATOR ',') AS P_BSNM_NM_LIST
+						FROM CYL_KAIT_ADD_APPLCNT_INFO AINFO
+						INNER JOIN CYL_KAIT_BSNM BSNM
+						ON BSNM.BSNM_CD = AINFO.BSNM_CD
+						GROUP BY TRUBL_MDAT_NO) ADA	ON A.TRUBL_MDAT_NO = ADA.TRUBL_MDAT_NO
+	 	WHERE A.TRUBL_MDAT_NO = #{mapng_key}
+		AND (
+			(A.CI = #{login_user_ci} OR A.P_CI = #{login_user_ci} OR D_CI = #{login_user_ci} OR P_D_CI = #{login_user_ci})
+			OR FIND_IN_SET((SELECT BIZRNO FROM CYL_KAIT_BSNM_MNG WHERE CONCAT(CTTPC_F, CTTPC_M, CTTPC_L) = #{cttpc} <if test="ipin != null and ipin != ''"> AND NM = #{user_nm} </if> ),ADA.P_BIZRNO_LIST) > 0
+			OR FIND_IN_SET((SELECT BIZRNO FROM CYL_KAIT_BSNM_MNG WHERE P_CI = #{login_user_ci} <if test="ipin != null and ipin != ''"> AND NM = #{user_nm} </if>),ADA.P_BIZRNO_LIST) > 0
+		)
+    </select>
+
+</mapper>

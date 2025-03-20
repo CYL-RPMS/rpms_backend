@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="OpinionRcept">
+ 	<sql id="incCond">
+		WHERE 'Y' =  F_RET_USE_YN(A.RCEPT_NO,'CYL_KAIT_OPINIONRCEPT')
+		<if test="ty == 'ON'">
+		  AND A.CI = #{login_user_ci}
+		</if>
+		<if test="user_nm != null and user_nm != ''">
+		  AND C.USER_NM LIKE CONCAT( '%', #{user_nm}, '%' )
+		</if>
+		<if test="rcept_nm != null and rcept_nm != ''">
+		  AND A.RCEPT_SJ LIKE CONCAT( '%', #{rcept_sj}, '%' )
+		</if>
+		<if test="rcept_cn != null and rcept_cn != ''">
+		  AND A.RCEPT_CN LIKE CONCAT( '%', #{rcept_cn}, '%' )
+		</if>
+		<if test="ty != null and ty != ''">
+		  AND A.TY = #{ty}
+		</if>
+		<if test="str_crte_dttm != null and str_crte_dttm != ''">
+		  AND DATE_FORMAT(B.CRTE_DTTM, '%Y-%m-%d') >= #{str_crte_dttm}   
+		</if>
+		<if test="end_crte_dttm != null and end_crte_dttm != ''">
+		  AND DATE_FORMAT(B.CRTE_DTTM, '%Y-%m-%d') <![CDATA[<=]]>  #{end_crte_dttm}
+		</if>
+		 <if test="searchType != null and searchType != ''">
+            <if test="searchKeyword != null and searchKeyword != ''">
+	              <if test="searchType == 'RCEPT_NM'">
+	              AND INSTR(UPPER(REPLACE(A.RCEPT_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+	              </if>
+	              <if test="searchType == 'USER_NM'">
+	              AND INSTR(UPPER(REPLACE(C.USER_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+	              </if>
+	        </if>
+         </if>
+	</sql>
+
+	 <insert id="create" parameterType="paramMap">
+		<selectKey order="BEFORE" keyProperty="rcept_no" resultType="String">
+			SELECT F_CREATE_RCEPT_NO() AS rcept_no;
+		</selectKey>
+		INSERT INTO
+    		CYL_KAIT_OPINIONRCEPT
+    		(
+    			RCEPT_NO
+    			,RCEPT_SE
+    			,RCEPT_SJ
+				,RCEPT_CN
+				,NM
+				,CTTPC
+				,EMAIL
+				,TY
+				,RSPNS_CN
+				,CI
+    		) VALUES (
+				#{rcept_no}
+				,'ONLINE'
+    			,#{rcept_sj}
+    			,#{rcept_cn}
+    			,#{nm}
+    			,#{cttpc}
+    			,#{email}
+    			<if test="ty == null or ty == ''">
+    			,'ON'
+    			</if>
+    			<if test="ty != null and ty != ''">
+    			,#{ty}
+    			</if>
+    			,#{rspns_cn}
+    			,#{login_user_ci}
+    		);
+   		<if test="file_list != null and file_list != ''">
+	   		<foreach separator="" item="vo" index="i" collection="file_list">
+	    	INSERT INTO
+				CYL_CMM_FILE_MAPNG (
+					MAPNG_KEY
+					,MAPNG_TABLE
+					,ATCH_FILE_ID
+					,COLUNM_NM
+					,SN
+					,CRTE_USER_ID
+					,CRTE_DTTM
+				) VALUES (
+					#{rcept_no}
+					,'CYL_KAIT_OPINIONRCEPT'
+					,#{vo.ATCH_FILE_KEY}
+					,#{vo.FILE_COLUNM}
+					,'1'
+					,#{login_user_id}
+					,NOW()
+				);
+	   		</foreach>
+   		</if>    	
+		<if test="opinion_file_list != null and opinion_file_list != ''">
+	   		<foreach separator="" item="vo" index="i" collection="opinion_file_list">
+	    	INSERT INTO
+				CYL_CMM_FILE_MAPNG (
+					MAPNG_KEY
+					,MAPNG_TABLE
+					,ATCH_FILE_ID
+					,COLUNM_NM
+					,SN
+					,CRTE_USER_ID
+					,CRTE_DTTM
+				) VALUES (
+					#{rcept_no}
+					,'CYL_KAIT_OPINIONRCEPT'
+					,#{vo.ATCH_FILE_KEY}
+					,#{vo.FILE_COLUNM}
+					,'1'
+					,#{login_user_id}
+					,NOW()
+				);
+	   		</foreach>
+   		</if>    
+    	INSERT INTO 
+    		CYL_CMM_DB_USE_MAPNG	
+    		(
+    			MAPNG_KEY
+				,MAPNG_TABLE
+				,USE_YN
+				,CRTE_USER_ID
+				,CRTE_DTTM
+    		) VALUES (
+    			#{rcept_no}
+    			,'CYL_KAIT_OPINIONRCEPT'
+    			,'Y'
+    			,#{login_user_id}
+    			,NOW()
+    		);
+    </insert>
+    
+    <update id="modify" parameterType="paramMap">
+    	UPDATE CYL_KAIT_OPINIONRCEPT
+    	   SET RSPNS_CN = #{rspns_cn}
+    	      ,ANSWER_YN = 'Y'
+    	      ,RSPNS_DTTM = NOW()
+    	 WHERE RCEPT_NO = #{rcept_no};
+    	 
+    	 UPDATE CYL_CMM_DB_USE_MAPNG
+    	   SET UPDT_USER_ID = #{login_user_id}
+             , UPDT_DTTM = NOW()
+    	 WHERE MAPNG_KEY = #{rcept_no}
+    	   AND MAPNG_TABLE = 'CYL_KAIT_OPINIONRCEPT';
+    	 
+    	<if test="opinion_file_list != null and opinion_file_list != ''">
+    		DELETE FROM CYL_CMM_FILE_MAPNG
+		   	 WHERE MAPNG_KEY = #{rcept_no}
+			   AND MAPNG_TABLE = 'CYL_KAIT_OPINIONRCEPT'
+			   AND COLUNM_NM LIKE 'OPINION_FILE_%';
+	   		<foreach separator="" item="vo" index="i" collection="opinion_file_list">
+	    	INSERT INTO
+				CYL_CMM_FILE_MAPNG (
+					MAPNG_KEY
+					,MAPNG_TABLE
+					,ATCH_FILE_ID
+					,COLUNM_NM
+					,SN
+					,CRTE_USER_ID
+					,CRTE_DTTM
+				) VALUES (
+					#{rcept_no}
+					,'CYL_KAIT_OPINIONRCEPT'
+					,#{vo.ATCH_FILE_KEY}
+					,#{vo.FILE_COLUNM}
+					,'1'
+					,#{login_user_id}
+					,NOW()
+				);
+	   		</foreach>
+   		</if>    
+    </update>
+	
+	<sql id="query">
+		SELECT A.RCEPT_NO
+      		   ,A.RCEPT_SJ
+      		   ,A.RCEPT_CN
+      		   ,C.USER_NM AS REG_NM
+      		   ,A.NM
+      		   ,IF(A.ANSWER_YN='N','신청','완료') AS ANSWER_YN
+      		   ,DATE_FORMAT(B.CRTE_DTTM,'%Y-%m-%d') AS REG_DT
+      		   ,DATE_FORMAT(A.RSPNS_DTTM,'%Y-%m-%d') AS RSPNS_DTTM
+      		   ,A.CTTPC
+      		   ,A.EMAIL
+      		   ,A.RSPNS_CN
+      		   ,A.TY
+      		   ,(SELECT COUNT(*) 
+      		       FROM CYL_KAIT_OPINIONRCEPT A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+      		    							  ON A.RCEPT_NO = B.MAPNG_KEY
+			   	                      		  AND B.MAPNG_TABLE = 'CYL_KAIT_OPINIONRCEPT'
+			   	                      		  AND B.USE_YN = 'Y'
+			   	                      		  INNER JOIN CYL_CMM_0100_TN C
+			   	                      		  ON B.CRTE_USER_ID = C.USER_ID
+			  <include refid="incCond"/>
+      		   ) AS TOT
+ 		  FROM CYL_KAIT_OPINIONRCEPT A INNER JOIN CYL_CMM_DB_USE_MAPNG B 
+                       				   ON A.RCEPT_NO = B.MAPNG_KEY
+				                       AND B.MAPNG_TABLE = 'CYL_KAIT_OPINIONRCEPT'
+				                       AND B.USE_YN = 'Y'
+				                       INNER JOIN CYL_CMM_0100_TN C
+				                       ON B.CRTE_USER_ID = C.USER_ID   
+	</sql>
+	<select id="adminlist" parameterType="paramMap" resultType="paramMap">
+		<include refid="CylCmm.prefixPagination" />
+            <include refid="query" />
+        	<include refid="incCond"/>
+               ORDER BY RCEPT_NO DESC  
+        <include refid="CylCmm.suffixPagination" />
+	</select>
+
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+        <include refid="CylCmm.prefixPagination" />
+            <include refid="query" />
+        	<include refid="incCond"/>
+                AND B.CRTE_USER_ID = #{user_id}
+               ORDER BY REG_DT DESC  
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+    
+    
+      <select id="view" parameterType="paramMap" resultType="paramMap">
+  		  SELECT A.RCEPT_NO
+                ,A.RCEPT_SJ
+                ,A.RCEPT_CN
+                ,A.RSPNS_CN
+                ,A.NM
+                ,A.CTTPC
+     			,A.EMAIL
+                ,DATE_FORMAT(A.RSPNS_DTTM,'%Y-%m-%d') AS RSPNS_DT
+                ,DATE_FORMAT(B.CRTE_DTTM,'%Y-%m-%d') AS REG_DT
+				,C.USER_NM           
+           FROM CYL_KAIT_OPINIONRCEPT A INNER JOIN CYL_CMM_DB_USE_MAPNG B 
+                                      ON A.RCEPT_NO = B.MAPNG_KEY
+                                     AND B.MAPNG_TABLE = 'CYL_KAIT_OPINIONRCEPT'
+                                     AND B.USE_YN = 'Y'
+  			                       INNER JOIN CYL_CMM_0100_TN C
+		 	                          ON B.CRTE_USER_ID = C.USER_ID
+          WHERE A.RCEPT_NO= #{rcept_no} 
+    </select>
+    
+    <update id="delete" parameterType="paramMap">
+    	UPDATE CYL_CMM_DB_USE_MAPNG
+    	   SET UPDT_USER_ID = #{login_user_id}
+			   ,UPDT_DTTM = NOW()
+			   ,USE_YN = 'N'
+		 WHERE MAPNG_KEY = #{rcept_no}
+		   AND MAPNG_TABLE = 'CYL_KAIT_OPINIONRCEPT'
+    </update>
+   
+</mapper>

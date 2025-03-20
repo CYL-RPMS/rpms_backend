@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--[통신분쟁]2021-05-04 / Kait-5 / by ihpark / 사건 단계별 담당자의 문자메시지 전송기능 추가-->
+<mapper namespace="sendSMS">
+	<insert id="create" parameterType="paramMap">
+		/* sendSMS.insert : 문자전송 insert */
+		<if test="sms_list != null">
+			<foreach separator="" item="vo" index="i" collection="sms_list">
+				INSERT INTO
+				CYL_CMM_SMS
+						(
+							SMS_NO
+							,SMS_SE
+							,MAPNG_KEY
+							,MAPNG_REFRN
+							,SMS_CN
+							,DSPTCH_F
+							,DSPTCH_M
+							,DSPTCH_L
+							,RECPTN_F
+							,RECPTN_M
+							,RECPTN_L
+						)
+				SELECT F_CREATE_SMS_NO()
+						,'SMS002'
+						,A.TRUBL_MDAT_NO
+						,A.STTUS
+						,#{vo.cn}
+						,F_SPLIT_STR(B.CODE_DC,'-',1)
+						,F_SPLIT_STR(B.CODE_DC,'-',2)
+						,F_SPLIT_STR(B.CODE_DC,'-',3)
+						,#{vo.cttpc_f}
+						,#{vo.cttpc_m}
+						,#{vo.cttpc_l}
+				FROM CYL_KAIT_TRUBL_MDAT_MST A LEFT OUTER JOIN CYL_CMM_0002_TC B
+							 ON A.MDAT_PT = B.CODE
+									AND CODE_ID = 'CYL033'
+				WHERE A.TRUBL_MDAT_NO = #{trubl_mdat_no};
+			</foreach>
+		</if>
+	</insert>
+
+	<select id="selectPetitioner" parameterType="paramMap" resultType="paramMap">
+		/* sendSMS.selectPetitioner : 신청인 정보 가져오기 */
+		SELECT A.TRUBL_MDAT_NO
+				,A.CTTPC
+				,F_SPLIT_STR(A.CTTPC,'-',1) AS CTTPC_F
+				,F_SPLIT_STR(A.CTTPC,'-',2) AS CTTPC_M
+				,F_SPLIT_STR(A.CTTPC,'-',3) AS CTTPC_L
+				,B.NM AS A_NM
+				,B.CTTPC AS A_CTTPC
+				,F_SPLIT_STR(B.CTTPC,'-',1) AS A_CTTPC_F
+				,F_SPLIT_STR(B.CTTPC,'-',2) AS A_CTTPC_M
+				,F_SPLIT_STR(B.CTTPC,'-',3) AS A_CTTPC_L
+		FROM CYL_KAIT_TRUBL_MDAT_MST A INNER JOIN CYL_KAIT_TRUBL_MDAT_DTL B
+					 ON A.TRUBL_MDAT_NO = B.TRUBL_MDAT_NO
+		WHERE A.TRUBL_MDAT_NO = #{trubl_mdat_no}
+	</select>
+
+	<select id="selectRespondent" parameterType="paramMap" resultType="paramMap">
+		/* sendSMS.selectRespondent : 피신청인 정보 가져오기 */
+		SELECT A.TRUBL_MDAT_NO
+				,B.CTTPC AS CTTPC
+				,F_SPLIT_STR(B.CTTPC,'-',1) AS CTTPC_F
+				,F_SPLIT_STR(B.CTTPC,'-',2) AS CTTPC_M
+				,F_SPLIT_STR(B.CTTPC,'-',3) AS CTTPC_L
+				,B.D_NM AS A_NM
+				,B.D_CTTPC AS A_CTTPC
+				,F_SPLIT_STR(B.D_CTTPC,'-',1) AS A_CTTPC_F
+				,F_SPLIT_STR(B.D_CTTPC,'-',2) AS A_CTTPC_M
+				,F_SPLIT_STR(B.D_CTTPC,'-',3) AS A_CTTPC_L
+		FROM CYL_KAIT_TRUBL_MDAT_MST A INNER JOIN cyl_kait_add_applcnt_info B
+					 ON A.TRUBL_MDAT_NO = B.TRUBL_MDAT_NO
+		WHERE A.TRUBL_MDAT_NO = #{trubl_mdat_no}
+	</select>
+
+</mapper>

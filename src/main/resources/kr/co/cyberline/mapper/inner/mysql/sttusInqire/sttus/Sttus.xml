@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Sttus">
+ 	<sql id="incCond">
+ 		WHERE 'Y' = F_RET_USE_YN(A.TRUBL_MDAT_NO,'CYL_KAIT_TRUBL_MDAT_MST')
+ 		AND A.STTUS != 'TM000'
+		<choose>
+			<when test='tab == "_req"'>
+				AND A.STTUS = 'TM001'
+			</when>
+			<when test='tab == "_private"'>
+				AND A.STTUS != 'TM001'
+				AND A.CHARGER_ID = #{login_user_id}
+			</when>
+			<when test='tab == "_all"'>
+				AND A.STTUS != 'TM001'
+			</when>
+		</choose>
+		<if test="condTfclght != null and condTfclght != ''">
+			AND CASE WHEN A.STTUS LIKE 'TM99%' THEN 'compt_circle'
+					 WHEN TIMESTAMPDIFF(DAY, NOW(),A.TREDE) <![CDATA[<=]]> 14 AND A.STTUS LIKE 'TM00%' THEN 'compt_unsolv_circle'
+		        	 WHEN TIMESTAMPDIFF(DAY, NOW(),A.TREDE) <![CDATA[<=]]> 0 AND A.STTUS LIKE 'TM99%' THEN 'compt_circle'
+		        	 WHEN TIMESTAMPDIFF(DAY, NOW(),A.TREDE) <![CDATA[<=]]> 14 THEN 'red_circle' 
+		        	 WHEN TIMESTAMPDIFF(DAY, NOW(),A.TREDE) <![CDATA[<=]]> 29 THEN 'yellow_circle'
+		        	 WHEN TIMESTAMPDIFF(DAY, NOW(),A.TREDE) <![CDATA[>=]]> 30 THEN 'green_circle'
+		        ELSE 'N' END = #{condTfclght}
+		</if>
+		<if test="condNm != null and condNm != ''">
+			AND (A.NM like concat('%',#{condNm},'%') OR B.NM like concat('%',#{condNm},'%'))
+		</if>
+		<if test="condP_nm != null and condP_nm != ''">
+			AND ADA.P_NM_LIST like concat('%',#{condP_nm},'%')
+		</if>
+		<if test="condTrubl_mdat_no != null and condTrubl_mdat_no != ''">
+			AND A.TRUBL_MDAT_NO like concat('%',#{condTrubl_mdat_no},'%')
+		</if>
+		<if test="condReqst_reason != null and condReqst_reason != ''">
+			AND A.REQST_REASON like concat('%',#{condReqst_reason},'%')
+		</if>
+		<if test="cond_dm_ty_l != null and cond_dm_ty_l != ''">
+			AND A.DM_TY_L = #{cond_dm_ty_l}
+		</if>
+		<if test="cond_dm_ty_m != null and cond_dm_ty_m != ''">
+			AND A.DM_TY_M = #{cond_dm_ty_m}
+		</if>
+		<if test="cond_dm_ty_s != null and cond_dm_ty_s != ''">
+			AND A.DM_TY_S = #{cond_dm_ty_s}
+		</if>
+		<if test="condRoleCharger != null and condRoleCharger != ''">
+			AND A.CHARGER_ID = #{condRoleCharger}
+		</if>
+		<if test="cond_mfcmm_cd != null and cond_mfcmm_cd != ''">
+		  AND A.TRUBL_MDAT_NO IN (SELECT TRUBL_MDAT_NO FROM CYL_KAIT_TRUBL_MDAT_EVL_MFCMM WHERE USER_ID = #{cond_mfcmm_cd})
+		</if>
+		<if test="condSttus != null and condSttus != ''">
+				<choose>
+					<when test="condSttus == 'TM003'">
+						AND A.STTUS IN ('TM002', 'TM003')
+					</when>
+					<otherwise>
+						AND A.STTUS = #{condSttus}
+					</otherwise>
+				</choose>
+		</if>
+	</sql>
+
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+         /* Sttus.list : 현황판 목록*/
+        <include refid="CylCmm.prefixPagination" />
+         SELECT A.TRUBL_MDAT_NO
+		        ,C.M_TRUBL_MDAT_NO
+		        ,A.TRUBL_MDAT_SE
+		        ,A.INOUT_SE
+		        ,DATE_FORMAT(D.CRTE_DTTM, '%Y-%m-%d') AS REQ_DT
+		        ,A.STTUS
+		        ,B.ENDD
+		        ,A.NM
+		        ,F_COMM_USER_NM(A.CHARGER_ID) AS CHARGER_NM
+				,A.STPGE
+		        ,CONCAT(DATE_FORMAT(A.TREDE, '%Y-%m-%d'), IF(A.STPGE = 'Y', ' (중지)', '')) AS TREDE 
+		        ,A.REQST_REASON
+		        ,#{tab} AS TAB
+		        ,CONCAT(
+		        CASE WHEN A.STTUS LIKE 'TM99%' THEN <![CDATA['<div class="compt_circle"']]>
+		        	 WHEN IF(A.STPGE = 'Y', A.STPGE_REMNDR_DAYCNT, TIMESTAMPDIFF(DAY, NOW(),A.TREDE)) <![CDATA[<=]]> 0 AND A.STTUS LIKE 'TM00%' THEN <![CDATA['<div class="not_compt_circle"']]>
+		        	 WHEN IF(A.STPGE = 'Y', A.STPGE_REMNDR_DAYCNT, TIMESTAMPDIFF(DAY, NOW(),A.TREDE)) <![CDATA[<=]]> 14 THEN <![CDATA['<div class="not_compt_circle"']]>
+		        	 /*WHEN IF(A.STPGE = 'Y', A.STPGE_REMNDR_DAYCNT, TIMESTAMPDIFF(DAY, NOW(),A.TREDE)) <![CDATA[<=]]> 14 THEN <![CDATA['<div class="red_circle"']]>*/
+		        	 WHEN IF(A.STPGE = 'Y', A.STPGE_REMNDR_DAYCNT, TIMESTAMPDIFF(DAY, NOW(),A.TREDE)) <![CDATA[<=]]> 29 THEN <![CDATA['<div class="yellow_circle"']]>
+		        	 WHEN IF(A.STPGE = 'Y', A.STPGE_REMNDR_DAYCNT, TIMESTAMPDIFF(DAY, NOW(),A.TREDE)) <![CDATA[>=]]> 30 THEN <![CDATA['<div class="green_circle"']]>
+		        END,' title="',
+		        CASE WHEN IF(A.STPGE = 'Y', A.STPGE_REMNDR_DAYCNT, TIMESTAMPDIFF(DAY, NOW(),A.TREDE)) <![CDATA[<=]]> 0 THEN '종료'
+					 WHEN A.STTUS LIKE 'TM99%' THEN '종료'
+		        ELSE CONCAT(IF(A.STPGE = 'Y', A.STPGE_REMNDR_DAYCNT, TIMESTAMPDIFF(DAY, NOW(),A.TREDE)),'일') END
+		        ,'"','>','<![CDATA[<div>]]>') AS TFCLGHT
+		        ,CASE WHEN IF(A.STPGE = 'Y', A.STPGE_REMNDR_DAYCNT, TIMESTAMPDIFF(DAY, NOW(),A.TREDE)) <![CDATA[<=]]> 0 THEN '종료'
+					  WHEN A.STTUS LIKE 'TM99%' THEN '종료'
+		        <!-- ELSE CONCAT(TIMESTAMPDIFF(DAY, NOW(),A.TREDE),'일') END AS REMNDR_DAYCNT -->
+		        ELSE CONCAT(IF(A.STPGE = 'Y', A.STPGE_REMNDR_DAYCNT, TIMESTAMPDIFF(DAY, NOW(),A.TREDE)),'일') END AS REMNDR_DAYCNT
+		        ,IFNULL(E.CONFM_AT,'N') AS CONFM_AT
+		        /*직권조정결정일 경우*/
+		        ,IF(A.STTUS = 'TM009' OR A.STTUS = 'TM994',A.OCTHT_ISSU,A.MDAT_CONFM) AS MDAT_CONFM
+		        ,F.MFCMM_LIST
+		        ,(
+			  	   SELECT COUNT(*)  
+			  	 	 FROM CYL_KAIT_TRUBL_MDAT_MST A LEFT OUTER JOIN CYL_KAIT_TRUBL_MDAT_DTL B
+		                                            ON A.TRUBL_MDAT_NO = B.TRUBL_MDAT_NO
+		                                            LEFT OUTER JOIN CYL_KAIT_MRG_INCDNT C
+		                                    		ON A.TRUBL_MDAT_NO = C.TRUBL_MDAT_NO
+		                                    		INNER JOIN CYL_CMM_DB_USE_MAPNG D
+		                                  			ON A.TRUBL_MDAT_NO = D.MAPNG_KEY
+		                                  			AND D.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+													INNER JOIN (SELECT TRUBL_MDAT_NO, GROUP_CONCAT(BSNM.BSNM_NM SEPARATOR ',') AS P_NM_LIST
+																FROM CYL_KAIT_ADD_APPLCNT_INFO AINFO
+																INNER JOIN CYL_KAIT_BSNM BSNM
+																ON BSNM.BSNM_CD = AINFO.BSNM_CD
+																GROUP BY TRUBL_MDAT_NO) ADA
+													ON A.TRUBL_MDAT_NO = ADA.TRUBL_MDAT_NO
+			         <include refid="incCond"/>
+			      ) AS TOT
+		   FROM CYL_KAIT_TRUBL_MDAT_MST A LEFT OUTER JOIN CYL_KAIT_TRUBL_MDAT_DTL B
+		                                  ON A.TRUBL_MDAT_NO = B.TRUBL_MDAT_NO
+		                                  LEFT OUTER JOIN CYL_KAIT_MRG_INCDNT C
+		                                  ON A.TRUBL_MDAT_NO = C.TRUBL_MDAT_NO
+		                                  INNER JOIN CYL_CMM_DB_USE_MAPNG D
+		                                  ON A.TRUBL_MDAT_NO = D.MAPNG_KEY
+		                                  AND D.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+		                                  LEFT OUTER JOIN CYL_KAIT_TRUBL_MDAT_ET_HIST E
+		                                  ON A.TRUBL_MDAT_NO = E.TRUBL_MDAT_NO
+		                                  LEFT OUTER JOIN (SELECT TRUBL_MDAT_NO, GROUP_CONCAT(CONCAT(USER_NM,' ',F_COMM_CODE_NM('CYL028',CLSF)) ORDER BY CLSF ASC SEPARATOR <![CDATA['<br />']]>) AS MFCMM_LIST FROM CYL_KAIT_TRUBL_MDAT_EVL_MFCMM GROUP BY TRUBL_MDAT_NO) F
+									  	  ON A.TRUBL_MDAT_NO = F.TRUBL_MDAT_NO
+										  INNER JOIN (SELECT TRUBL_MDAT_NO, GROUP_CONCAT(BSNM.BSNM_NM SEPARATOR ',') AS P_NM_LIST
+													  FROM CYL_KAIT_ADD_APPLCNT_INFO AINFO
+													  INNER JOIN CYL_KAIT_BSNM BSNM
+													  ON BSNM.BSNM_CD = AINFO.BSNM_CD
+													  GROUP BY TRUBL_MDAT_NO) ADA
+										  ON A.TRUBL_MDAT_NO = ADA.TRUBL_MDAT_NO
+        <include refid="incCond"/>
+          ORDER BY A.TRUBL_MDAT_NO DESC
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+	
+	<select id="selectCnt" parameterType="paramMap" resultType="paramMap">
+         /* Sttus."selectCnt" : 현황판 진행현황 개수*/
+        SELECT SUM(CASE WHEN A.STTUS = 'TM002' THEN 1 WHEN A.STTUS = 'TM003' THEN 1 ELSE 0 END) AS CNT1
+             , SUM(CASE WHEN A.STTUS = 'TM005' THEN 1 ELSE 0 END) AS CNT2
+             , SUM(CASE WHEN A.STTUS = 'TM006' THEN 1 ELSE 0 END) AS CNT3
+             , SUM(CASE WHEN A.STTUS = 'TM009' THEN 1 ELSE 0 END) AS CNT6
+             <!-- , SUM(CASE WHEN NOW() BETWEEN C.RQSTDT_STR AND C.RQSTDT_END THEN 1 ELSE 0 END) AS CNT4 -->
+             , SUM(CASE WHEN C.TRUBL_MDAT_NO IS NOT NULL THEN 1 ELSE 0 END) AS CNT4
+             , SUM(CASE WHEN A.STTUS LIKE '%TM9%' THEN 1 ELSE 0 END) AS CNT5
+		  FROM CYL_KAIT_TRUBL_MDAT_MST A LEFT OUTER JOIN CYL_KAIT_TRUBL_MDAT_DTL B
+		                                 ON A.TRUBL_MDAT_NO = B.TRUBL_MDAT_NO
+                                         LEFT OUTER JOIN CYL_KAIT_TRUBL_MDAT_PBLANC C
+                                         ON A.TRUBL_MDAT_NO = C.TRUBL_MDAT_NO
+										 INNER JOIN (SELECT TRUBL_MDAT_NO, GROUP_CONCAT(BSNM.BSNM_NM SEPARATOR ',') AS P_NM_LIST
+													 FROM CYL_KAIT_ADD_APPLCNT_INFO AINFO
+													 INNER JOIN CYL_KAIT_BSNM BSNM
+													 ON BSNM.BSNM_CD = AINFO.BSNM_CD
+													 GROUP BY TRUBL_MDAT_NO) ADA
+										 ON A.TRUBL_MDAT_NO = ADA.TRUBL_MDAT_NO
+        <include refid="incCond"/>
+    </select>
+    
+    <update id="msgSmsInsert" parameterType="paramMap">
+    	INSERT INTO 
+   			CYL_CMM_SMS
+   			(
+   				SMS_NO
+				,SMS_SE
+				,MAPNG_KEY
+				,MAPNG_REFRN
+				,SMS_CN
+				,DSPTCH_F
+				,DSPTCH_M
+				,DSPTCH_L
+				,RECPTN_F
+				,RECPTN_M
+				,RECPTN_L
+   			) 
+	 SELECT (SELECT CONCAT('TDRC_SMS_',CURDATE()+0,'_',LPAD(IFNULL(MAX(REPLACE(A.SMS_NO,CONCAT('TDRC_SMS_',CURDATE()+0,'_'),'')),0) + (@rownum:=@rownum+1),4,0))
+	  		   FROM CYL_CMM_SMS A
+	 		  WHERE A.SMS_NO LIKE CONCAT('TDRC_SMS_',CURDATE()+0,'%'))
+	   	 	,'SMS001'
+	   		,A.MULTI_TRUBL_MDAT_NO
+		    ,'MULTI_MSG'
+		    ,CONCAT(' ',#{sttus_msg},' 상태에 사건이 ',INCDNT_CNT,'건에 사건이 존재 합니다.',' www.tdrc.kr 에서 로그인 후 전체현황판을 통하여 사건을 확인 가능 합니다.')
+		    ,F_SPLIT_STR(C.CODE_DC,'-',1)
+		    ,F_SPLIT_STR(C.CODE_DC,'-',2)
+		    ,F_SPLIT_STR(C.CODE_DC,'-',3)
+		    ,F_SPLIT_STR(B.CTTPC,'-',1)
+		    ,F_SPLIT_STR(B.CTTPC,'-',2)
+		    ,F_SPLIT_STR(B.CTTPC,'-',3)
+	   FROM (
+		    SELECT B.USER_ID
+				   ,B.USER_NM
+				   ,GROUP_CONCAT(A.TRUBL_MDAT_NO,'') as MULTI_TRUBL_MDAT_NO
+				   ,COUNT(1) as INCDNT_CNT
+			  FROM CYL_KAIT_TRUBL_MDAT_MST A INNER JOIN CYL_KAIT_TRUBL_MDAT_EVL_MFCMM B
+			  								 ON A.TRUBL_MDAT_NO = B.TRUBL_MDAT_NO 
+			 WHERE 'Y' = F_RET_USE_YN(A.TRUBL_MDAT_NO,'CYL_KAIT_TRUBL_MDAT_MST')
+			   AND CASE WHEN TIMESTAMPDIFF(DAY, NOW(),A.TREDE) <![CDATA[<=]]> 0 THEN 'E'
+				 	    WHEN TIMESTAMPDIFF(DAY, NOW(),A.TREDE) <![CDATA[<=]]> 14 THEN 'D'
+				 	    WHEN TIMESTAMPDIFF(DAY, NOW(),A.TREDE) <![CDATA[<=]]> 14 THEN 'C'
+				 	    WHEN TIMESTAMPDIFF(DAY, NOW(),A.TREDE) <![CDATA[<=]]> 29 THEN 'B'
+				 	    WHEN TIMESTAMPDIFF(DAY, NOW(),A.TREDE) <![CDATA[>=]]> 30 THEN 'A'
+				   END = #{sttus}
+			   AND A.MDAT_CONFM = 'N'
+			 GROUP BY B.USER_ID,B.USER_NM
+		    ) A LEFT OUTER JOIN CYL_CMM_0100_TN B
+    		    ON A.USER_ID = B.USER_ID
+    		    LEFT OUTER JOIN CYL_CMM_0002_TC C
+    		    ON B.MDAT_PT = C.CODE
+    		    AND C.CODE_ID = 'CYL033'
+	  WHERE (@rownum:=0) = 0
+    </update>
+</mapper>

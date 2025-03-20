@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AdmCommon">
+
+    <select id="toDateSelect" parameterType="paramMap" resultType="paramMap">
+        /* AdmCommon.toDateSelect : 오늘 날짜 조회 */
+        SELECT DATE_FORMAT(NOW(), '%Y-%m-%d') AS TO_DAY
+    </select>
+    
+    <select id="retPk" parameterType="paramMap" resultType="paramMap">
+        /* AdmCommon.retPk : PK 반환 */
+        SELECT LAST_INSERT_ID() AS retPk
+    </select>
+    
+    <insert id="ckEditorInsert" parameterType="paramMap">
+    	INSERT INTO 
+    		CYL_CMM_FILE_CKEDITOR
+    		(
+    			ATCH_FILE_ID
+				,SN
+				,USE_AT
+				,CRTE_USER_ID
+				,CRTE_DTTM
+    		) VALUES (
+    			#{atch_file_id}
+    			,1
+    			,'Y'
+    			,#{login_user_id}
+    			,NOW()
+    		)
+    </insert>
+    
+    <select id="cmmFileList" parameterType="paramMap" resultType="paramMap">
+        /* AdmCommon.cmmFileList : 공통 파일 리스트 조회 */
+        SELECT A.MAPNG_KEY
+			   ,A.COLUNM_NM
+			   ,F_COMM_FILE_ID(A.MAPNG_KEY,A.MAPNG_TABLE,A.COLUNM_NM,1) AS ATCH_FILE_ID
+			   ,F_COMM_FILE_NM(F_COMM_FILE_ID(A.MAPNG_KEY,A.MAPNG_TABLE,A.COLUNM_NM,1)) AS ATCH_FILE_ID_NM
+			   ,DATE_FORMAT(A.CRTE_DTTM, '%Y-%m-%d %H:%i:%s') AS CRTE_DTTM
+			   ,DATE_FORMAT(CCT.CRTE_DTTM, '%Y-%m-%d') AS ORIGIN_CRTE_DTTM
+		  FROM CYL_CMM_FILE_MAPNG A left outer join cyl_cmm_0400_tn cct on A.ATCH_FILE_ID = cct.ATCH_FILE_ID
+		 WHERE A.MAPNG_TABLE = #{TABLE}
+		   AND A.COLUNM_NM LIKE #{LIKE_COLUNM}
+		   AND A.MAPNG_KEY LIKE #{LIKE_KEY}
+		   AND A.USE_AT = 'Y'
+		   <if test="OTHBC_AT != null and OTHBC_AT != ''">
+		   AND A.OTHBC_AT = #{OTHBC_AT}
+		   </if>
+		 ORDER BY cct.CRTE_DTTM ASC, A.MAPNG_KEY DESC, A.COLUNM_NM ASC
+    </select>
+</mapper>

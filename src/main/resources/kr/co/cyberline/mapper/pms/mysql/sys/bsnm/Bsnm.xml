@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--[통신분쟁]2021-05-25 / Kait-17 / by ihpark / 시스템관리 > 사업자등록 추가-->
+<mapper namespace="Bsnm">
+ 	<sql id="incCond">
+       WHERE 1=1
+	   AND USE_YN = 'Y'
+       <if test="condBsnm != null and condBsnm != ''">
+       	AND A.BSNM_NM LIKE CONCAT('%',#{condBsnm},'%')
+       </if>
+<!--       <if test="condCttpc != null and condCttpc != ''">
+       	AND (CONCAT(A.CTTPC_F,A.CTTPC_M,A.CTTPC_L)  = #{condCttpc} OR CONCAT(A.CTTPC_F,'-',A.CTTPC_M,'-',A.CTTPC_L)  = #{condCttpc})
+       </if>-->
+        <if test="condBizrno != null and condBizrno != ''">
+        AND A.BIZRNO LIKE CONCAT('%',#{condBizrno},'%')
+        </if>
+	</sql>
+	
+    <select id="selectBsnmList" parameterType="paramMap" resultType="paramMap">
+        /* UserManage.selectUserManageList : 사업자 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        SELECT A.*,replace(A.bsnm_cd,'KAIT_BS_','')*1 as cef_order,
+        (SELECT COUNT(*)
+                FROM cyl_kait_bsnm A
+                <include refid="incCond" />
+                )AS TOT
+        FROM cyl_kait_bsnm A
+        <include refid="incCond" />
+        order by cef_order
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+
+    <select id="selectBsnmDetail" parameterType="paramMap" resultType="paramMap">
+        /* UserManagement.selectUserManageDetail : 사업자 상세 조회 */
+        SELECT BSNM_CD, BSNM_NM, HMPG, ZIP, ADRES, DETAIL_ADRES, CTTPC_F, CTTPC_M, CTTPC_L, BIZRNO, SN, USE_YN, DEPT_NM
+        FROM cyl_kait_bsnm A
+        WHERE A.BSNM_CD = #{bsnm_cd}
+    </select>
+    <!--[통신분쟁]2021-07-09 / Kait-37 / by ihpark / 사업자 등록 시 피신청인 직인/및 사인 구현-->
+    <update id="updateBsnm" parameterType="paramMap">
+        /* UserManagement.updateUserManage : 사업자 수정 */
+       	UPDATE cyl_kait_bsnm SET
+            BSNM_NM = #{bsnm_nm}
+            ,HMPG = #{hmpg}
+            ,CTTPC_F = #{cttpc_f}
+            ,CTTPC_M = #{cttpc_m}
+            ,CTTPC_L = #{cttpc_l}
+            ,ZIP = #{zip}
+            ,ADRES = #{adres}
+            ,DETAIL_ADRES = #{detail_adres}
+            ,BIZRNO = #{bizrno}
+            ,SN = #{sn}
+            ,USE_YN = #{use_yn}
+			,DEPT_NM = #{dept_nm}
+		WHERE BSNM_CD = #{bsnm_cd};
+
+        DELETE
+        FROM CYL_CMM_FILE_MAPNG
+        WHERE MAPNG_TABLE = 'CYL_KAIT_BSNM'
+        AND COLUNM_NM LIKE 'BSNM_SIGN_FILE%'
+        AND MAPNG_KEY = #{bsnm_cd};
+
+        <if test="bsnm_sign_file_list != '' and bsnm_sign_file_list != null">
+            <foreach separator="" item="vo" index="i" collection="bsnm_sign_file_list">
+                INSERT INTO
+                CYL_CMM_FILE_MAPNG
+                (
+                    MAPNG_KEY
+                    ,MAPNG_TABLE
+                    ,ATCH_FILE_ID
+                    ,COLUNM_NM
+                    ,SN
+                    ,CRTE_USER_ID
+                    ,CRTE_DTTM
+                ) VALUES (
+                    #{bsnm_cd}
+                    ,'CYL_KAIT_BSNM'
+                    ,#{vo.ATCH_FILE_ID}
+                    ,#{vo.COLUNM_NM}
+                    ,1
+                    ,#{login_user_id}
+                    ,NOW()
+                );
+            </foreach>
+        </if>
+    </update>
+
+    <insert id="insertBsnm" parameterType="paramMap">
+        /* UserManagement.updateUserManage : 사업자 등록 */
+        <selectKey order="BEFORE" keyProperty="bsnm_cd" resultType="String">
+            SELECT  case when MAX(REPLACE(BSNM_CD ,'KAIT_BS_','') * 1) <![CDATA[<]]> 99 then CONCAT('KAIT_BS_',IFNULL(LPAD(MAX(REPLACE(BSNM_CD ,'KAIT_BS_','')) + 1,2,0),'01'))
+            			 when MAX(REPLACE(BSNM_CD ,'KAIT_BS_','') * 1) <![CDATA[<]]> 999 then CONCAT('KAIT_BS_',IFNULL(MAX(REPLACE(BSNM_CD ,'KAIT_BS_','') * 1 + 1),'100'))
+            			 else CONCAT('KAIT_BS_',IFNULL(MAX(REPLACE(BSNM_CD ,'KAIT_BS_','') * 1 + 1),'1000'))
+            			 end as bsnm_cd
+            from cyl_kait_bsnm;
+        </selectKey>
+       	INSERT INTO cyl_kait_bsnm
+		(BSNM_CD, BSNM_NM, HMPG, ZIP, ADRES, DETAIL_ADRES, CTTPC_F, CTTPC_M, CTTPC_L, BIZRNO, SN, USE_YN, DEPT_NM)
+		VALUES(#{bsnm_cd}, #{bsnm_nm}, #{hmpg}, #{zip}, #{adres}, #{detail_adres}, #{cttpc_f}, #{cttpc_m}, #{cttpc_l}, #{bizrno},#{sn}, #{use_yn}, #{dept_nm});
+
+        DELETE
+        FROM CYL_CMM_FILE_MAPNG
+        WHERE MAPNG_TABLE = 'CYL_KAIT_BSNM'
+        AND COLUNM_NM LIKE 'BSNM_SIGN_FILE%'
+        AND MAPNG_KEY = #{bsnm_cd};
+
+        <if test="bsnm_sign_file_list != '' and bsnm_sign_file_list != null">
+            <foreach separator="" item="vo" index="i" collection="bsnm_sign_file_list">
+                INSERT INTO
+                CYL_CMM_FILE_MAPNG
+                (
+                MAPNG_KEY
+                ,MAPNG_TABLE
+                ,ATCH_FILE_ID
+                ,COLUNM_NM
+                ,SN
+                ,CRTE_USER_ID
+                ,CRTE_DTTM
+                ) VALUES (
+                @BSNM_CD
+                ,'CYL_KAIT_BSNM'
+                ,#{vo.ATCH_FILE_ID}
+                ,#{vo.COLUNM_NM}
+                ,1
+                ,#{login_user_id}
+                ,NOW()
+                );
+            </foreach>
+        </if>
+    </insert>
+	
+	<update id="deleteBsnm" parameterType="paramMap">
+        /* Bsnm.deleteBsnm : 사업자 리스트 삭제 */
+        UPDATE cyl_kait_bsnm
+        SET USE_YN = 'N'
+        WHERE BSNM_CD = #{bsnm_cd};
+    </update>
+    <!--//End-->
+</mapper>

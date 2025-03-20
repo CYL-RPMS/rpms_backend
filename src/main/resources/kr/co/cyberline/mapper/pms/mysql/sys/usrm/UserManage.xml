@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="UserManagement">
+    <!--/*[통신분쟁]2021-08-23 / Kait-63 / by ihpark / 로그인 횟수제한 및 비밀번호 변경*/-->
+    <select id="selectUserManageList" parameterType="userVO" resultType="userVO">
+        /* UserManage.selectUserManageList : 사용자 관리 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        <![CDATA[
+        SELECT A.USER_ID
+        	  ,A.LOGIN_ID
+        	  ,A.PASSWD
+        	  ,A.USER_NM
+        	  ,A.USER_STTUS_CD
+        	  ,A.CLSF
+        	  ,A.CRTE_USER_ID
+        	  ,A.CRTE_DTTM
+        	  ,A.UPDT_USER_ID
+        	  ,A.UPDT_DTTM
+        	  ,ifnull(HIST.IS_LOCK,'N') AS IS_LOCK,
+               (SELECT COUNT(*)
+                  FROM CYL_CMM_0100_VN A
+                  LEFT OUTER JOIN (SELECT C.USER_ID
+                                         ,D.AUTHOR_NM_KR
+                                         ,D.AUTHOR_ID 
+                                     FROM CYL_CMM_0101_TN C INNER JOIN CYL_CMM_0200_TN D 
+                                                           ON C.AUTHOR_ID = D.AUTHOR_ID) B
+                   ON A.USER_ID = B.USER_ID
+                   LEFT OUTER JOIN CYL_KAIT_LOGIN_HIST HIST on A.LOGIN_ID = HIST.USER_ID
+                   WHERE 1 = 1
+                   AND USER_STTUS_CD = 'p'
+         ]]>
+                <if test="searchKeyword != null and searchKeyword != ''">
+                    AND (INSTR(UPPER(REPLACE(A.USER_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0 OR INSTR(UPPER(REPLACE(A.LOGIN_ID, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0)
+                </if>
+                <if test="condUserSttusCd != null and condUserSttusCd != ''">
+                    AND A.USER_STTUS_CD = #{condUserSttusCd}
+                </if>
+                <if test="condAuthorNm != null and condAuthorNm != ''">
+                    AND INSTR(UPPER(REPLACE(B.AUTHOR_NM_KR, ' ', '')), UPPER(REPLACE(#{condAuthorNm}, ' ', ''))) > 0
+                </if>
+                <if test="condAuthorId != null and condAuthorId != ''">
+                    AND B.AUTHOR_ID = #{condAuthorId}
+                </if>
+                <if test="condDeptCd != null and condDeptCd != ''">
+                    <choose>
+                        <when test="lvl != null and lvl != ''">
+                            AND INSTR(A.DEPT_CD, #{condDeptCd}) = 1
+                        </when>
+                        <otherwise>
+                            AND A.DEPT_CD = #{condDeptCd}
+                        </otherwise>
+                    </choose>
+                 </if>
+                 <if test="condLock != null and condLock != ''">
+                     <choose>
+                         <when test="condLock == 'N'.toString()">
+                             AND HIST.IS_LOCK IS NULL
+                         </when>
+                         <otherwise>
+                             AND HIST.IS_LOCK = #{condLock}
+                         </otherwise>
+                     </choose>
+                 </if>
+                ) AS TOT,
+      <![CDATA[
+               B.AUTHOR_NM_KR
+        FROM CYL_CMM_0100_VN A
+        LEFT OUTER JOIN (SELECT C.USER_ID, D.AUTHOR_NM_KR, D.AUTHOR_ID FROM CYL_CMM_0101_TN C INNER JOIN CYL_CMM_0200_TN D ON C.AUTHOR_ID = D.AUTHOR_ID) B
+                       ON A.USER_ID = B.USER_ID
+        LEFT OUTER JOIN CYL_KAIT_LOGIN_HIST HIST on A.LOGIN_ID = HIST.USER_ID
+        WHERE 1=1
+        AND USER_STTUS_CD = 'p'
+        ]]>
+        <if test="searchKeyword != null and searchKeyword != ''">
+            AND (INSTR(UPPER(REPLACE(A.USER_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0 OR INSTR(UPPER(REPLACE(A.LOGIN_ID, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0)
+        </if>
+        <if test="condUserSttusCd != null and condUserSttusCd != ''">
+            AND A.USER_STTUS_CD = #{condUserSttusCd}
+        </if>
+        <if test="condAuthorNm != null and condAuthorNm != ''">
+            AND INSTR(UPPER(REPLACE(B.AUTHOR_NM_KR, ' ', '')), UPPER(REPLACE(#{condAuthorNm}, ' ', ''))) > 0
+        </if>
+        <if test="condAuthorId != null and condAuthorId != ''">
+            AND B.AUTHOR_ID = #{condAuthorId}
+        </if>
+        <if test="condDeptCd != null and condDeptCd != ''">
+            <choose>
+                <when test="lvl != null and lvl != ''">
+                    AND INSTR(A.DEPT_CD, #{condDeptCd}) = 1
+                </when>
+                <otherwise>
+                    AND A.DEPT_CD = #{condDeptCd}
+                </otherwise>
+            </choose>
+        </if>
+        <if test="condLock != null and condLock != ''">
+             <choose>
+                 <when test="condLock == 'N'.toString()">
+                     AND HIST.IS_LOCK IS NULL
+                 </when>
+                 <otherwise>
+                     AND HIST.IS_LOCK = #{condLock}
+                 </otherwise>
+             </choose>
+         </if>
+        <include refid="CylCmm.orderby" />
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+
+
+    <select id="selectDeptList" parameterType="paramMap" resultType="paramMap">
+        /* UserManagement.selectDeptList : 권한 목록 기준 사용자 사용 여부 체크 목록  */
+        <![CDATA[
+       	SELECT * FROM CYL_CMM_DEPT ORDER BY  DEPT_LVL ,SN
+        ]]>
+    </select>
+
+    <select id="selectUserManageDetail" parameterType="paramMap" resultType="paramMap">
+        /* UserManagement.selectUserManageDetail : 사용자 관리 상세 조회 */
+        <![CDATA[
+        SELECT USER_ID
+			   ,LOGIN_ID  
+           	   ,USER_NM
+               ,CTTPC
+               ,SUBSTRING_INDEX(CTTPC,'-', 1) AS cttpc_frst
+               ,SUBSTRING_INDEX((SUBSTRING_INDEX(CTTPC,'-', -2)),'-', 1) AS cttpc_middle
+               ,SUBSTRING_INDEX(CTTPC,'-', -1) AS cttpc_last
+               ,CLSF
+               ,MDAT_PT
+               ,CRTE_DTTM  
+               ,UPDT_USER_ID  
+               ,UPDT_DTTM  
+        FROM CYL_CMM_0100_TN A
+        WHERE A.USER_ID = #{user_id}
+        ]]>
+    </select>
+
+    <insert id="insertUserManage" parameterType="userVO">
+        /* UserManagement.insertUserManage : 사용자 관리 등록 */
+        <![CDATA[
+        INSERT INTO 
+        	CYL_CMM_0100_TN (
+           	   USER_ID
+           		,LOGIN_ID  
+           		,PASSWD  
+           		,USER_NM
+           		,USER_STTUS_CD  
+           		,CTTPC
+           		,CLSF
+              	,MDAT_PT
+           		,CRTE_USER_ID  
+           		,CRTE_DTTM  
+        	) VALUES (
+            	#{user_id}
+            	,#{login_id}
+            	,#{passwd}
+            	,#{user_nm}
+            	,'p'
+            	,CONCAT(#{cttpc_frst},"-",#{cttpc_middle},"-",#{cttpc_last})
+            	,#{clsf}
+            	,#{mdat_pt}
+            	,#{crte_user_id}
+            	,NOW()
+        	)
+        ]]>
+    </insert>
+    <!--/*[통신분쟁]2021-08-23 / Kait-63 / by ihpark / 로그인 횟수제한 및 비밀번호 변경*/-->
+    <update id="updateUserManage" parameterType="paramMap">
+        /* UserManagement.updateUserManage : 사용자 관리 수정 */
+        UPDATE CYL_CMM_0100_TN SET
+        <if test="login_id != null and login_id != ''">
+            LOGIN_ID = #{login_id},
+        </if>
+        <if test="user_nm != null and user_nm != ''">
+            USER_NM = #{user_nm},
+        </if>
+        <if test="user_eng_nm != null and user_eng_nm != ''">
+            USER_ENG_NM = #{user_eng_nm},
+        </if>
+        <if test="passwd != null and passwd != ''">
+            PASSWD = #{passwd},
+        </if>
+        <if test="clsf != null and clsf  != ''">
+        	CLSF = #{clsf},
+        </if>
+        <if test="cttpc_frst != null and cttpc_frst  != ''">
+        	CTTPC = CONCAT(#{cttpc_frst},'-',#{cttpc_middle},'-',#{cttpc_last}),
+        </if>
+        <![CDATA[
+        	MDAT_PT = #{mdat_pt},
+            UPDT_USER_ID = #{updt_user_id},
+            UPDT_DTTM = NOW()
+        ]]>
+        WHERE USER_ID = #{user_id};
+
+        DELETE FROM CYL_KAIT_LOGIN_HIST
+        WHERE USER_ID = #{login_id};
+    </update>
+
+    <update id="delete" parameterType="paramMap">
+        /* UserManagement.delete : 사용자 삭제 */
+        UPDATE CYL_CMM_0100_TN SET
+        	USER_STTUS_CD = 'f',
+            UPDT_USER_ID = #{login_user_id},
+            UPDT_DTTM = NOW()
+        WHERE USER_ID = #{user_id};
+    </update>
+
+    <select id="isLoginIdExist" parameterType="paramMap" resultType="paramMap">
+        /* UserManagement.isLoginIdExists : 사용자 로그인 ID 존재 여부 */
+        <![CDATA[
+        SELECT COUNT(LOGIN_ID) AS CNT FROM CYL_CMM_0100_VN WHERE LOGIN_ID = #{login_id}
+        ]]>
+    </select>
+    <select id="isFindLoginId" parameterType="paramMap" resultType="paramMap">
+        /* UserManagement.isFindLoginId : 아이디 찾기 */
+        <![CDATA[
+        SELECT CONCAT(substring(LOGIN_ID,1,4) , '********' ) as LOGIN_ID 
+          FROM CYL_CMM_0100_VN
+         WHERE USER_NM = #{user_nm}
+		   AND EMAIL = #{email}
+		   AND CTTPC_FRST = #{cttpc_frst}
+		   AND CTTPC_MIDDLE = #{cttpc_middle}
+		   AND CTTPC_LAST = #{cttpc_last};
+        ]]>
+    </select>
+    
+    <select id="isFindLoginPw" parameterType="paramMap" resultType="paramMap">
+        /* UserManagement.isFindLoginPw : 비밀번호 찾기 */
+        <![CDATA[
+        SELECT COUNT(1) AS CNT
+          FROM CYL_CMM_0100_VN
+         WHERE LOGIN_ID = #{login_id}
+		   AND EMAIL = #{pw_email}
+		   AND CTTPC_FRST = #{pw_cttpc_frst}
+		   AND CTTPC_MIDDLE = #{pw_cttpc_middle}
+		   AND CTTPC_LAST = #{pw_cttpc_last};
+        ]]>
+    </select>
+
+</mapper>

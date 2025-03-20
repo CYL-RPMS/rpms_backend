@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Incdnt">
+	<!--//[통신분쟁]2021-09-27 / Kait-70 / by ihpark / 사건처리현황 통계-->
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+        SELECT ENDD
+        	  ,SUM(CASE WHEN DATE_FORMAT(B.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'01') THEN 1 ELSE 0 END) AS S_1
+  		      ,SUM(CASE WHEN DATE_FORMAT(B.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'02') THEN 1 ELSE 0 END) AS S_2
+  		      ,SUM(CASE WHEN DATE_FORMAT(B.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'03') THEN 1 ELSE 0 END) AS S_3
+  		      ,SUM(CASE WHEN DATE_FORMAT(B.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'04') THEN 1 ELSE 0 END) AS S_4
+  		      ,SUM(CASE WHEN DATE_FORMAT(B.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'05') THEN 1 ELSE 0 END) AS S_5
+  		      ,SUM(CASE WHEN DATE_FORMAT(B.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'06') THEN 1 ELSE 0 END) AS S_6
+  		      ,SUM(CASE WHEN DATE_FORMAT(B.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'07') THEN 1 ELSE 0 END) AS S_7
+  		      ,SUM(CASE WHEN DATE_FORMAT(B.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'08') THEN 1 ELSE 0 END) AS S_8
+  		      ,SUM(CASE WHEN DATE_FORMAT(B.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'09') THEN 1 ELSE 0 END) AS S_9
+  		      ,SUM(CASE WHEN DATE_FORMAT(B.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'10') THEN 1 ELSE 0 END) AS S_10
+  		      ,SUM(CASE WHEN DATE_FORMAT(B.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'11') THEN 1 ELSE 0 END) AS S_11
+  		      ,SUM(CASE WHEN DATE_FORMAT(B.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'12') THEN 1 ELSE 0 END) AS S_12
+		     , COUNT(*) AS CNT
+		  FROM CYL_KAIT_TRUBL_MDAT_DTL A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+									     ON A.TRUBL_MDAT_NO = B.MAPNG_KEY
+		                                 AND B.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+		                                 AND B.USE_YN = 'Y'
+		 WHERE ENDD NOT IN ('ENDD_001','ENDD_002','ENDD_003','ENDD_004','ENDD_005','ENDD_990','ENDD_999')
+		   AND DATE_FORMAT(B.CRTE_DTTM, '%Y') = #{condYear}
+		 GROUP BY ENDD, DATE_FORMAT(B.CRTE_DTTM, '%Y');
+    </select>
+	<select id="list2" parameterType="paramMap" resultType="paramMap">
+	        SELECT D.STTUS
+	        	  ,SUM(CASE WHEN DATE_FORMAT(D.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'01') THEN 1 ELSE 0 END) AS S_1
+	  		      ,SUM(CASE WHEN DATE_FORMAT(D.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'02') THEN 1 ELSE 0 END) AS S_2
+	  		      ,SUM(CASE WHEN DATE_FORMAT(D.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'03') THEN 1 ELSE 0 END) AS S_3
+	  		      ,SUM(CASE WHEN DATE_FORMAT(D.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'04') THEN 1 ELSE 0 END) AS S_4
+	  		      ,SUM(CASE WHEN DATE_FORMAT(D.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'05') THEN 1 ELSE 0 END) AS S_5
+	  		      ,SUM(CASE WHEN DATE_FORMAT(D.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'06') THEN 1 ELSE 0 END) AS S_6
+	  		      ,SUM(CASE WHEN DATE_FORMAT(D.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'07') THEN 1 ELSE 0 END) AS S_7
+	  		      ,SUM(CASE WHEN DATE_FORMAT(D.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'08') THEN 1 ELSE 0 END) AS S_8
+	  		      ,SUM(CASE WHEN DATE_FORMAT(D.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'09') THEN 1 ELSE 0 END) AS S_9
+	  		      ,SUM(CASE WHEN DATE_FORMAT(D.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'10') THEN 1 ELSE 0 END) AS S_10
+	  		      ,SUM(CASE WHEN DATE_FORMAT(D.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'11') THEN 1 ELSE 0 END) AS S_11
+	  		      ,SUM(CASE WHEN DATE_FORMAT(D.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'12') THEN 1 ELSE 0 END) AS S_12
+			     , COUNT(*) AS CNT
+			FROM (
+			  		SELECT
+						A.TRUBL_MDAT_NO , A.SN , A.CRTE_DTTM, sttus
+					FROM CYL_KAIT_TRUBL_MDAT_STTUS_HIST A
+						INNER JOIN (
+							SELECT
+							   B.TRUBL_MDAT_NO, DATE_FORMAT(B.CRTE_DTTM, '%Y-%m') AS CRTE_DTTM, MAX(B.SN) AS SN
+							FROM CYL_KAIT_TRUBL_MDAT_STTUS_HIST B
+							WHERE 1=1
+							GROUP BY B.TRUBL_MDAT_NO,DATE_FORMAT(B.CRTE_DTTM, '%Y-%m')
+						) C ON A.TRUBL_MDAT_NO = C.TRUBL_MDAT_NO AND A.SN = C.SN
+				) D
+			 WHERE D.STTUS LIKE 'TM%'
+			   AND DATE_FORMAT(D.CRTE_DTTM, '%Y') = #{condYear}
+			 GROUP BY D.STTUS, DATE_FORMAT(D.CRTE_DTTM, '%Y');
+	</select>
+	<select id="excel" parameterType="paramMap" resultType="paramMap">
+        SELECT IFNULL(A.CODE_NM,'합계') as CODE_NM
+			   ,A.S_2016
+			   ,A.S_2017
+			   ,A.S_2018
+			   ,A.S_2019
+			   ,A.S_2020
+		  FROM (
+			   SELECT A.CODE
+		   	   		  ,A.CODE_NM
+			   		  ,SUM(CASE WHEN B.S_YEAR = '2016' THEN B.CNT ELSE 0 END) AS S_2016
+			   		  ,SUM(CASE WHEN B.S_YEAR = '2017' THEN B.CNT ELSE 0 END) AS S_2017
+			   		  ,SUM(CASE WHEN B.S_YEAR = '2018' THEN B.CNT ELSE 0 END) AS S_2018
+			   		  ,SUM(CASE WHEN B.S_YEAR = '2019' THEN B.CNT ELSE 0 END) AS S_2019
+			   		  ,SUM(CASE WHEN B.S_YEAR = '2020' THEN B.CNT ELSE 0 END) AS S_2020
+		  	     FROM (
+		  			  SELECT A.CODE
+		   	   			     ,A.CODE_NM
+		  			    FROM CYL_CMM_0002_TC A
+		  			   WHERE A.USE_AT = 'Y'
+		   			     AND A.CODE_ID = 'CYL004'
+		  			   ORDER BY CODE ASC
+		  			  ) A LEFT OUTER JOIN (
+		  					   SELECT ENDD
+									  ,DATE_FORMAT(B.CRTE_DTTM, '%Y') AS S_YEAR
+									  ,COUNT(1) AS CNT
+								 FROM CYL_KAIT_TRUBL_MDAT_DTL A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+															    ON A.TRUBL_MDAT_NO = B.MAPNG_KEY
+										                        AND B.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+										                        AND B.USE_YN = 'Y'
+							    WHERE ENDD LIKE 'ENDD%'
+								  AND DATE_FORMAT(B.CRTE_DTTM, '%Y') BETWEEN (2020-4) AND 2020
+							    GROUP BY ENDD, DATE_FORMAT(B.CRTE_DTTM, '%Y')
+		  				  ) B
+		  				  ON A.CODE = B.ENDD
+		    GROUP BY A.CODE_NM WITH ROLLUP
+		) A
+    </select>
+
+	<select id="codeList" parameterType="paramMap" resultType="paramMap">
+		SELECT CODE
+			 , CODE_NM
+		  FROM CYL_CMM_0002_TC
+		 WHERE USE_AT = 'Y'
+		   AND CODE_ID = #{CODE_ID}
+		   AND CODE NOT IN ('ENDD_001','ENDD_002','ENDD_003','ENDD_004','ENDD_005','ENDD_990','ENDD_999')
+		ORDER BY FIELD(CODE, '값1', '값2', '값3');
+	</select>
+	<!--//[통신분쟁]2021-09-27 / Kait-70 / by ihpark / 사건처리현황 통계-->
+	<select id="ingList" parameterType="paramMap" resultType="paramMap">
+		SELECT
+			A.CRTE_DTTM
+		   ,DATE_FORMAT(A.CRTE_DTTM,'%m') AS STATMONTH
+		   ,A.TM002
+		   ,A.TM003
+		   ,A.TM005
+		   ,A.TM009
+		   ,A.TM006_N
+		   ,A.TM006_Y
+		   ,A.TM003+A.TM005+A.TM009+A.TM006_N+A.TM006_Y AS TOTALCNT
+		FROM CYL_KAIT_CASESTATS A,
+			 (
+				SELECT
+				MAX(A.CRTE_DTTM) AS MAXDATE
+				FROM CYL_KAIT_CASESTATS A
+				GROUP BY DATE_FORMAT(A.CRTE_DTTM,'%Y%m')
+			 ) as B
+		WHERE DATE_FORMAT(A.CRTE_DTTM,'%Y') = #{condYear}
+		AND A.CRTE_DTTM = B.MAXDATE
+		ORDER BY STATMONTH ASC
+		;
+	</select>
+	<select id="receptList" parameterType="paramMap" resultType="paramMap">
+		SELECT
+			DATE_FORMAT(a.RCEPT_DT ,'%m') as STATMONTH, count('x') as CNT
+		FROM CYL_KAIT_TRUBL_MDAT_MST a
+		WHERE DATE_FORMAT(a.RCEPT_DT,'%Y') = #{condYear}
+		GROUP BY DATE_FORMAT(a.RCEPT_DT,'%m');
+	</select>
+	
+	<select id="receptListBak" parameterType="paramMap" resultType="paramMap">
+		SELECT
+			DATE_FORMAT(a.CRTE_DTTM,'%m') as STATMONTH, count('x') as CNT
+		FROM CYL_KAIT_TRUBL_MDAT_STTUS_HIST a
+		WHERE a.STTUS = 'TM002'
+		AND DATE_FORMAT(a.CRTE_DTTM,'%Y') = #{condYear}
+		GROUP BY DATE_FORMAT(a.CRTE_DTTM,'%m');
+	</select>
+</mapper>

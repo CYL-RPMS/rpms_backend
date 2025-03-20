@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AllInqire">
+ 	<sql id="incCond">
+		<where>
+			AND A.STTUS != 'TM000'
+			<if test="condTrubl_mdat_se != null and condTrubl_mdat_se != ''">
+			  AND A.TRUBL_MDAT_SE = #{condTrubl_mdat_se}
+			</if>
+			<if test="condSttus != null and condSttus != ''">
+			  AND A.STTUS = #{condSttus}
+			</if>
+			<if test="condDecsn_ty_list != null and condDecsn_ty_list != ''">
+			  AND B.DECSN_TY IN
+			  <foreach item="vo" index="i" collection="condDecsn_ty_list" open="(" separator="," close=")">
+			      #{vo.condDecsn_ty}
+			  </foreach>
+			</if>
+			<if test="condNm != null and condNm != ''">
+			  AND (A.NM LIKE CONCAT('%',#{condNm},'%') OR B.NM like concat('%',#{condNm},'%'))
+			</if>
+			<if test="condP_nm != null and condP_nm != ''">
+			  AND ADA.P_BSNM_NM_LIST LIKE CONCAT('%',#{condP_nm},'%')
+			</if>
+			<if test="condCttpc != null and condCttpc != ''">
+			  AND (A.CTTPC LIKE CONCAT('%',#{condCttpc},'%') OR B.CTTPC LIKE CONCAT('%',#{condCttpc},'%'))
+			</if>
+			<if test="condReqst_reason != null and condReqst_reason != ''">
+			  AND A.REQST_REASON LIKE CONCAT('%',#{condReqst_reason},'%')
+			</if>
+			<if test="condTrubl_mdat_no != null and condTrubl_mdat_no != ''">
+			  AND A.TRUBL_MDAT_NO LIKE CONCAT('%',#{condTrubl_mdat_no},'%')
+			</if>
+			<if test="condCharger_nm != null and condCharger_nm != ''">
+			  AND F_COMM_USER_NM(A.CHARGER_ID) LIKE CONCAT('%',#{condCharger_nm},'%')
+			</if>
+			<choose>
+				<when test='condDe_type == "REQ"'>
+					AND DATE_FORMAT(D.CRTE_DTTM, '%Y-%m-%d') BETWEEN #{cond_St_dt} AND #{cond_End_dt}
+				</when>
+				<when test='condDe_type == "RCEPT"'>
+					AND DATE_FORMAT(D.UPDT_DTTM, '%Y-%m-%d') BETWEEN #{cond_St_dt} AND #{cond_End_dt}
+				</when>
+				<when test='condDe_type == "ED"'>
+					AND DATE_FORMAT(B.ED_DE, '%Y-%m-%d') BETWEEN #{cond_St_dt} AND #{cond_End_dt}
+				</when>
+			</choose>
+			<if test="condInfr_ty != null and condInfr_ty != ''">
+			  AND B.INFR_TY = #{condInfr_ty}
+			</if>
+			<if test="condReqst_trget_l != null and condReqst_trget_l != ''">
+			  AND B.REQST_TRGET_L = #{condReqst_trget_l}
+			</if>
+			<if test="condReqst_trget_m != null and condReqst_trget_m != ''">
+			  AND B.REQST_TRGET_M = #{condReqst_trget_m}
+			</if>
+			<if test="condReqst_trget_s != null and condReqst_trget_s != ''">
+			  AND B.REQST_TRGET_S = #{condReqst_trget_s}
+			</if>
+			<if test="cond_dm_ty_l != null and cond_dm_ty_l != ''">
+				AND A.DM_TY_L = #{cond_dm_ty_l}
+			</if>
+			<if test="cond_dm_ty_m != null and cond_dm_ty_m != ''">
+				AND A.DM_TY_M = #{cond_dm_ty_m}
+			</if>
+			<if test="cond_dm_ty_s != null and cond_dm_ty_s != ''">
+				AND A.DM_TY_S = #{cond_dm_ty_s}
+			</if>
+			<if test="cond_mfcmm_cd != null and cond_mfcmm_cd != ''">
+				AND A.TRUBL_MDAT_NO IN (SELECT TRUBL_MDAT_NO FROM CYL_KAIT_TRUBL_MDAT_EVL_MFCMM WHERE USER_ID = #{cond_mfcmm_cd})
+			</if>
+			<choose>
+                <when test="condDtlArea != null and condDtlArea != ''">
+                    AND A.ZIP BETWEEN (SELECT F_SPLIT_STR(CODE_DC,',',1) FROM CYL_CMM_0004_TC WHERE GRP_ID = 'AREA' and CODE = #{condDtlArea}) AND (SELECT F_SPLIT_STR(CODE_DC,',',2) FROM CYL_CMM_0004_TC WHERE GRP_ID = 'AREA' and CODE = #{condDtlArea})
+                </when>
+                <when test="condArea != null and condArea != ''">
+                    AND A.ZIP BETWEEN (SELECT F_SPLIT_STR(CODE_DC,',',1) FROM CYL_CMM_0004_TC WHERE GRP_ID = 'AREA' and CODE = #{condArea}) AND (SELECT F_SPLIT_STR(CODE_DC,',',2) FROM CYL_CMM_0004_TC WHERE GRP_ID = 'AREA' and CODE = #{condArea})
+                </when>
+                <otherwise>
+                </otherwise>
+            </choose>
+		</where>
+	</sql>
+	<!--[통신분쟁]2021-07-12 / Kait-38 / by ihpark / 다건 일괄 기한연장요청 구현 -> EXTEND_YN 추가-->
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+         /* AllInqire.list : 전체사건조회 목록*/
+        <include refid="CylCmm.prefixPagination" />
+         SELECT A.TRUBL_MDAT_NO
+				,case when e.SN is not null or e.sn != '' then 'N' else 'Y' end as EXTEND_YN
+		        ,C.M_TRUBL_MDAT_NO
+		        ,A.TRUBL_MDAT_SE
+		        ,DATE_FORMAT(A.RCEPT_DT, '%Y-%m-%d') AS RCEPT_DT
+		        ,DATE_FORMAT(D.CRTE_DTTM, '%Y-%m-%d') AS CRTE_DTTM
+				,A.STPGE
+		        ,CONCAT(DATE_FORMAT(A.TREDE, '%Y-%m-%d'), IF(A.STPGE = 'Y', ' (중지)', '')) AS TREDE 
+		        ,F_COMM_CODE_NM('CYL001',A.TRUBL_MDAT_SE) AS TRUBL_MDAT_SE_NM
+		        ,F_COMM_CODE_NM('CYL024',A.INOUT_SE) AS INOUT_SE
+		        ,A.NM
+		        ,ADA.P_BSNM_NM_LIST AS P_NM
+		        ,A.STTUS
+		        ,F_COMM_CODE_NM('CYL002',A.STTUS) AS STTUS_NM
+		        ,DATE_FORMAT(B.ED_DE, '%Y-%m-%d') AS ED_DE
+		        ,F_COMM_USER_NM(A.CHARGER_ID) AS CHARGER_NM
+		        ,(
+				SELECT COUNT(*)  
+				  FROM CYL_KAIT_TRUBL_MDAT_MST A INNER JOIN CYL_KAIT_TRUBL_MDAT_DTL B
+		                                         ON A.TRUBL_MDAT_NO = B.TRUBL_MDAT_NO
+		                                         LEFT OUTER JOIN CYL_KAIT_MRG_INCDNT C
+		                                  		 ON A.TRUBL_MDAT_NO = C.TRUBL_MDAT_NO
+		                                  		 INNER JOIN CYL_CMM_DB_USE_MAPNG D
+					                             ON A.TRUBL_MDAT_NO = D.MAPNG_KEY
+					                             AND D.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+					                             AND D.USE_YN = 'Y'
+												 LEFT OUTER JOIN ( SELECT TRUBL_MDAT_NO
+																		, GROUP_CONCAT(BSNM.BSNM_NM SEPARATOR ',') AS P_BSNM_NM_LIST
+																	 FROM CYL_KAIT_ADD_APPLCNT_INFO AINFO INNER JOIN CYL_KAIT_BSNM BSNM
+																										  ON BSNM.BSNM_CD = AINFO.BSNM_CD
+																    GROUP BY TRUBL_MDAT_NO
+																  ) ADA
+												 ON A.TRUBL_MDAT_NO = ADA.TRUBL_MDAT_NO
+			       <include refid="incCond"/>
+			    ) AS TOT
+		   FROM CYL_KAIT_TRUBL_MDAT_MST A INNER JOIN CYL_KAIT_TRUBL_MDAT_DTL B
+		                                  ON A.TRUBL_MDAT_NO = B.TRUBL_MDAT_NO
+		                                  LEFT OUTER JOIN CYL_KAIT_MRG_INCDNT C
+		                                  ON A.TRUBL_MDAT_NO = C.TRUBL_MDAT_NO
+		                                  INNER JOIN CYL_CMM_DB_USE_MAPNG D
+		                                  ON A.TRUBL_MDAT_NO = D.MAPNG_KEY
+		                                  AND D.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+		                                  AND D.USE_YN = 'Y'
+										  LEFT OUTER JOIN ( SELECT TRUBL_MDAT_NO
+																 , GROUP_CONCAT(BSNM.BSNM_NM SEPARATOR ',') AS P_BSNM_NM_LIST
+															  FROM CYL_KAIT_ADD_APPLCNT_INFO AINFO INNER JOIN CYL_KAIT_BSNM BSNM
+																								   ON BSNM.BSNM_CD = AINFO.BSNM_CD
+															GROUP BY TRUBL_MDAT_NO
+														  ) ADA
+										ON A.TRUBL_MDAT_NO = ADA.TRUBL_MDAT_NO
+										left outer join CYL_KAIT_TRUBL_MDAT_ET_HIST e
+										on A.TRUBL_MDAT_NO = e.TRUBL_MDAT_NO
+		<include refid="incCond"/>
+          ORDER BY A.TRUBL_MDAT_NO DESC
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+	<!--[통신분쟁]2021-08-02 / Kait-54 / by ihpark / 전체사건리스트 -> 엑셀다운로드 항목 추가-->
+	<select id="excel" parameterType="paramMap" resultType="paramMap">
+         /* AllInqire.excel : 전체사건조회 목록*/
+         SELECT A.TRUBL_MDAT_NO
+			    ,F_COMM_SCLSRT_CODE_NM('DM_TY',A.DM_TY_L) AS DM_TY_L_NM
+			    ,F_COMM_SCLSRT_CODE_NM('DM_TY',A.DM_TY_M) AS DM_TY_M_NM
+			    ,F_COMM_SCLSRT_CODE_NM('DM_TY',A.DM_TY_S) AS DM_TY_S_NM
+			    ,A.NM
+			    ,A.BRTHDY
+			    ,A.CTTPC
+			    ,A.EMAIL
+			    ,A.ZIP
+			    ,A.ADRES
+			    ,A.DETAIL_ADRES
+			    ,B.NM as D_NM
+			    ,B.BRTHDY as D_BRTHDY
+			    ,B.CTTPC as D_CTTPC
+			    ,B.EMAIL as D_EMAIL
+			    ,B.ZIP as D_ZIP
+			    ,B.ADRES as D_ADRES
+			    ,B.DETAIL_ADRES as D_DETAIL_ADRES
+			    ,B.RELATE as D_RELATE
+			    ,B.RELATE_RELTIV as D_RELATE_RELTIV
+			    ,F_COMM_USER_NM(A.CHARGER_ID) AS CHARGER_NM
+			    ,A.STTUS
+				,B.ENDD as endd
+			    ,A.REQST_REASON
+			    ,A.DEMAND_MATTER
+			    ,F_GROUP_COMM_CODE_NM('CYL025',A.DEMAND_MATTER_ITEM) as DEMAND_MATTER_ITEM
+			    ,A.INCDNT_DC
+		        ,DATE_FORMAT(D.CRTE_DTTM, '%Y-%m-%d') AS CRTE_DTTM
+			    ,DATE_FORMAT(A.RCEPT_DT, '%Y-%m-%d') AS RCEPT_DT
+			    ,DATE_FORMAT(A.B_MDAT_READNG_DT, '%Y-%m-%d') AS B_MDAT_READNG_DT
+			    ,DATE_FORMAT(A.P_MDAT_READNG_DT, '%Y-%m-%d') AS P_MDAT_READNG_DT
+			    ,DATE_FORMAT(A.TREDE, '%Y-%m-%d') AS TREDE
+		        ,DATE_FORMAT(B.ED_DE, '%Y-%m-%d') AS ED_DE
+		        ,F.BSNM_NM AS P_BSNM_NM
+		        ,E.BIZRNO AS P_BIZRNO
+		        ,E.NM AS P_NM
+			    ,E.BRTHDY AS P_BRTHDY
+			    ,E.CTTPC AS P_CTTPC
+			    ,E.EMAIL AS P_EMAIL
+			    ,E.ZIP AS P_ZIP
+			    ,E.ADRES AS P_ADRES
+			    ,E.DETAIL_ADRES AS P_DETAIL_ADRES
+			    ,E.URL AS P_URL
+			    ,E.D_NM AS P_D_NM
+			    ,E.D_BRTHDY AS P_D_BRTHDY
+			    ,E.D_CTTPC AS P_D_CTTPC
+			    ,E.D_EMAIL AS P_D_EMAIL
+			    ,E.D_ZIP AS P_D_ZIP
+			    ,E.D_ADRES AS P_D_ADRES
+			    ,E.D_DETAIL_ADRES AS P_D_DETAIL_ADRES
+			    ,E.D_RELATE AS P_D_RELATE
+			    ,E.D_RELATE_RELTIV AS P_D_RELATE_RELTIV
+				,apply_date
+				,factExam_date
+				,fact_file_uploadDate
+				,mfcmm.MDAT_DT as MDAT_DT
+				,pmdatAgr_file_uploadDate
+		   FROM CYL_KAIT_TRUBL_MDAT_MST A INNER JOIN CYL_KAIT_TRUBL_MDAT_DTL B
+		                                  ON A.TRUBL_MDAT_NO = B.TRUBL_MDAT_NO
+		                                  INNER JOIN CYL_CMM_DB_USE_MAPNG D
+		                                  ON A.TRUBL_MDAT_NO = D.MAPNG_KEY
+		                                  AND D.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+		                                  AND D.USE_YN = 'Y'
+		                                  INNER join cyl_kait_add_applcnt_info E
+		                                  ON A.TRUBL_MDAT_NO = E.TRUBL_MDAT_NO
+		                                  LEFT OUTER JOIN CYL_KAIT_BSNM F
+		                                  ON E.BSNM_CD = F.BSNM_CD
+										  left outer join (
+												select mst.TRUBL_MDAT_NO,
+													bsnm.BSNM_NM,
+													(select max(sh.CRTE_DTTM) from CYL_KAIT_TRUBL_MDAT_STTUS_HIST sh where sh.CRTE_DTTM is not null and sh.sttus ='TM002' and sh.TRUBL_MDAT_NO=mst.TRUBL_MDAT_NO group by sh.TRUBL_MDAT_NO) as apply_date,
+													(select max(sh.CRTE_DTTM) from CYL_KAIT_TRUBL_MDAT_STTUS_HIST sh where sh.CRTE_DTTM is not null and sh.sttus ='TM005' and sh.TRUBL_MDAT_NO=mst.TRUBL_MDAT_NO group by sh.TRUBL_MDAT_NO) as factExam_date,
+													sub.CRTE_DTTM as fact_file_uploadDate
+												from cyl_kait_trubl_mdat_mst mst
+														inner join cyl_kait_bsnm bsnm on bsnm.BSNM_CD = mst.BSNM_CD
+														left outer join  (
+															select ccfm.MAPNG_KEY, min(cct.CRTE_DTTM) as CRTE_DTTM
+															from cyl_cmm_file_mapng ccfm
+															inner join cyl_cmm_0400_tn cct
+															where ccfm.COLUNM_NM like 'FACT_FILE%'
+															and cct.ATCH_FILE_ID = ccfm.ATCH_FILE_ID
+															group by ccfm.MAPNG_KEY
+														) sub on mst.TRUBL_MDAT_NO = sub.MAPNG_KEY
+										   ) sub_inner ON A.TRUBL_MDAT_NO = sub_inner.TRUBL_MDAT_NO
+										  left outer join cyl_kait_trubl_mdat_evl_mfcmm mfcmm
+										  on A.TRUBL_MDAT_NO = mfcmm.TRUBL_MDAT_NO
+										  left outer join(
+											  select mst1.TRUBL_MDAT_NO, sub1.CRTE_DTTM as pmdatAgr_file_uploadDate
+											  from cyl_kait_trubl_mdat_mst mst1
+											  left outer join  (
+											  select ccfm1.MAPNG_KEY, min(cct1.CRTE_DTTM) as CRTE_DTTM
+											  from cyl_cmm_file_mapng ccfm1
+											  inner join cyl_cmm_0400_tn cct1
+											  where ccfm1.COLUNM_NM like 'PMDATAGR_FILE%'
+											  and cct1.ATCH_FILE_ID = ccfm1.ATCH_FILE_ID
+											  group by ccfm1.MAPNG_KEY
+											  ) sub1 on mst1.TRUBL_MDAT_NO = sub1.MAPNG_KEY
+										  ) sub_inner1 ON A.TRUBL_MDAT_NO = sub_inner1.TRUBL_MDAT_NO
+        <include refid="incCond"/>
+          ORDER BY A.TRUBL_MDAT_NO DESC
+    </select>
+	<!--[통신분쟁]2021-07-12 / Kait-38 / by ihpark / 다건 일괄 기한연장요청 구현-->
+	<update id="pdEtRequstConfmMulti" parameterType="paramMap">
+		/* AllInqire.pdEtRequstConfmMulti 일괄 사건처리기한 연장 */
+		<if test="trubl_list != null and trubl_list != ''">
+			<foreach separator="" collection="trubl_list" item="vo" index="i">
+				SET @P_TREDE = '';
+				SET @P_STTUS = '';
+				SELECT A.TREDE,A.STTUS INTO @P_TREDE,@P_STTUS  FROM CYL_KAIT_TRUBL_MDAT_MST A WHERE A.TRUBL_MDAT_NO = #{vo.trubl_mdat_no};
+				INSERT INTO
+				CYL_KAIT_TRUBL_MDAT_ET_HIST
+				(
+					TRUBL_MDAT_NO
+					,SN
+					,TREDE
+					,PD_EXTN_CO
+					,PD_EXTN_DAYCNT
+					,STTUS
+					,PRVONSH
+					,CONFM_AT
+				) VALUES (
+					#{vo.trubl_mdat_no}
+					,1
+					,@P_TREDE
+					,1
+					,30
+					,@P_STTUS
+					,'1차 30일 연장'
+					,'Y'
+				);
+
+				INSERT INTO
+				CYL_CMM_DB_USE_MAPNG
+				(
+					MAPNG_KEY
+					,MAPNG_TABLE
+					,CRTE_USER_ID
+					,CRTE_DTTM
+				) VALUES (
+					CONCAT(#{vo.trubl_mdat_no},' ',1)
+					,'CYL_KAIT_TRUBL_MDAT_ET_HIST'
+					,#{login_user_id}
+					,NOW()
+				);
+				
+				<if test="vo.sttus != null and vo.sttus != ''">
+					<include refid="pdEtRequstConfmMultiSMS" />
+				</if>
+
+				UPDATE CYL_KAIT_TRUBL_MDAT_MST
+				SET TREDE = DATE_ADD(TREDE, INTERVAL 30 DAY)
+					,PD_EXTN_CO = 1
+					,PD_EXTN_DAYCNT = 30
+				WHERE TRUBL_MDAT_NO = #{vo.trubl_mdat_no};
+			</foreach>
+		</if>
+
+		/*[통신분쟁]2021-08-23 / Kait-62 / by ihpark / 개인정보 관련 이력*/
+		INSERT INTO CYL_KAIT_INDVDL_ACTION_HIST(
+			  LOGIN_ID,
+			  IP,
+			  ACTION_DATE,
+			  P_SUBJECT,
+			  P_ACTION
+		) VALUES (
+			  #{private_login_id}
+			  , #{private_login_user_ip}
+			  , date_format(NOW(),'%Y-%m-%d %H:%i:%s')
+			  , '[전체사건조회]'
+			  , '일괄기한연장'
+		);
+	</update>
+	
+	<sql id="pdEtRequstConfmMultiSMS">
+		/*[통신분쟁]2022-05-13 / by tk / 일괄 기한연장시 신청인 피신청인 sms 발송*/
+		/* 신청인*/
+		INSERT INTO 
+		   			CYL_CMM_SMS_SCHDUL
+		   			(
+		   				 SMS_SE
+						,MAPNG_KEY
+						,MAPNG_REFRN
+						,SMS_CN
+						,DSPTCH_F
+						,DSPTCH_M
+						,DSPTCH_L
+						,RECPTN_F
+						,RECPTN_M
+						,RECPTN_L
+						,TREDE
+		   			) 
+		   			SELECT 'SMS001'
+						   ,A.TRUBL_MDAT_NO
+						   ,A.STTUS
+						   ,CONCAT('사건번호  :', A.TRUBL_MDAT_NO
+						          , ', 신청인 : ' , LEFT(TRIM(A.NM),CHAR_LENGTH(TRIM(A.NM))-1)
+						          ,'*님 신청사건의 처리기한이 30일 연장되었습니다.'
+						          , ' 처리기한 연장 사유 : ' , (SELECT CODE_DC FROM CYL_CMM_0002_TC WHERE CODE_ID = 'CYL040' AND CODE = A.STTUS)
+						          , ', 연장된 처리기한 : ', DATE_FORMAT ( DATE_ADD(A.TREDE, INTERVAL 30 DAY) , '%Y년 %m월 %d일') 
+						          )
+						   ,F_SPLIT_STR(B.CODE_DC,'-',1)
+						   ,F_SPLIT_STR(B.CODE_DC,'-',2)
+						   ,F_SPLIT_STR(B.CODE_DC,'-',3)
+						   ,F_SPLIT_STR(A.CTTPC,'-',1)
+		   	       		   ,F_SPLIT_STR(A.CTTPC,'-',2)
+		   	       		   ,F_SPLIT_STR(A.CTTPC,'-',3)
+		   	       		   ,A.TREDE
+		   			  FROM CYL_KAIT_TRUBL_MDAT_MST A LEFT OUTER JOIN CYL_CMM_0002_TC B
+					  							     ON A.MDAT_PT = B.CODE
+					  							     AND CODE_ID = 'CYL033'
+		   		     WHERE A.TRUBL_MDAT_NO = #{vo.trubl_mdat_no}
+		   		     UNION ALL 
+		   		     /*대리인*/
+		   		      SELECT  'SMS001'
+							   ,A.TRUBL_MDAT_NO
+							   ,C.STTUS
+							   ,CONCAT('사건번호 : ', A.TRUBL_MDAT_NO
+						          , ', 신청인 : ' , LEFT(TRIM(A.NM),CHAR_LENGTH(TRIM(A.NM))-1)
+						          ,'*님 신청사건의 처리기한이 30일 연장되었습니다.'
+						          , ' 처리기한 연장 사유 : ' , (SELECT CODE_DC FROM CYL_CMM_0002_TC WHERE CODE_ID = 'CYL040' AND CODE = C.STTUS)
+						          , ', 연장된 처리기한 : ' ,DATE_FORMAT ( DATE_ADD(C.TREDE, INTERVAL 30 DAY) , '%Y년 %m월 %d일') 
+						          )
+							   ,F_SPLIT_STR(B.CODE_DC,'-',1)
+							   ,F_SPLIT_STR(B.CODE_DC,'-',2)
+							   ,F_SPLIT_STR(B.CODE_DC,'-',3)
+							   ,F_SPLIT_STR(A.CTTPC,'-',1)
+			   	       		   ,F_SPLIT_STR(A.CTTPC,'-',2)
+			   	       		   ,F_SPLIT_STR(A.CTTPC,'-',3)
+							   ,C.TREDE
+			   			  FROM CYL_KAIT_TRUBL_MDAT_DTL A 
+			   			 INNER JOIN CYL_KAIT_TRUBL_MDAT_MST C ON A.TRUBL_MDAT_NO = C.TRUBL_MDAT_NO
+					      LEFT OUTER JOIN CYL_CMM_0002_TC B  ON C.MDAT_PT = B.CODE AND CODE_ID = 'CYL033'
+			   		     WHERE A.NM IS NOT NULL AND A.NM <![CDATA[ <> ]]> '' AND A.TRUBL_MDAT_NO = #{vo.trubl_mdat_no}
+			   		 UNION ALL  
+		   		     /* 피신청인*/	
+		   		     SELECT 'SMS001'
+						   ,A.TRUBL_MDAT_NO
+						   ,A.STTUS
+						   ,CONCAT('사건번호 : ', A.TRUBL_MDAT_NO
+						          , ', 신청인 : ' , LEFT(TRIM(A.NM),CHAR_LENGTH(TRIM(A.NM))-1)
+						          ,'*님 신청사건의 처리기한이 30일 연장되었습니다.'
+						          , ' 처리기한 연장 사유 : ' , (SELECT CODE_DC FROM CYL_CMM_0002_TC WHERE CODE_ID = 'CYL040' AND CODE = A.STTUS)
+						          , ', 연장된 처리기한 : ' ,DATE_FORMAT ( DATE_ADD(A.TREDE, INTERVAL 30 DAY) , '%Y년 %m월 %d일') 
+						          )
+						   ,F_SPLIT_STR(B.CODE_DC,'-',1)
+						   ,F_SPLIT_STR(B.CODE_DC,'-',2)
+						   ,F_SPLIT_STR(B.CODE_DC,'-',3)
+						   ,D.CTTPC_F
+		   	       		   ,D.CTTPC_M
+		   	       		   ,D.CTTPC_L
+		   	       		   ,A.TREDE
+		   			  FROM CYL_KAIT_TRUBL_MDAT_MST A LEFT OUTER JOIN CYL_CMM_0002_TC B
+					  							     ON A.MDAT_PT = B.CODE
+					  							     AND CODE_ID = 'CYL033'
+					  							    INNER JOIN CYL_KAIT_ADD_APPLCNT_INFO C 
+					  							     ON A.TRUBL_MDAT_NO = C.TRUBL_MDAT_NO 
+					  							    INNER JOIN CYL_KAIT_BSNM_MNG D 
+					  							     ON C.BIZRNO = D.BIZRNO 
+		   		     WHERE A.TRUBL_MDAT_NO = #{vo.trubl_mdat_no};
+	</sql>
+
+	<!--[통신분쟁]2021-07-12 / Kait-38 / by ihpark / 다건 일괄 기한연장요청 구현-->
+	<update id="cancelTmllmtEt" parameterType="paramMap">
+		/* AllInqire.cancelTmllmtEt 사건처리기한 연장 취소 */
+		delete from CYL_KAIT_TRUBL_MDAT_ET_HIST
+		where TRUBL_MDAT_NO =#{trubl_mdat_no}
+	    and sn = 1;
+
+		delete from CYL_CMM_DB_USE_MAPNG
+		where MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_ET_HIST'
+	    and MAPNG_KEY = concat(#{trubl_mdat_no},' ',1);
+
+		UPDATE CYL_KAIT_TRUBL_MDAT_MST
+		SET TREDE = date_sub(TREDE, INTERVAL 30 DAY)
+				,PD_EXTN_CO = 0
+				,PD_EXTN_DAYCNT = 0
+		WHERE TRUBL_MDAT_NO = #{trubl_mdat_no};
+	</update>
+</mapper>

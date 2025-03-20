@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="IncdntProcess">
+ 	<select id="list" parameterType="paramMap" resultType="paramMap">
+ 		SELECT A.S_YEAR
+			   ,MAX(CASE WHEN A.S_MONTH = '01' THEN A.S_NEW ELSE '' END) AS S_N_01
+			   ,MAX(CASE WHEN A.S_MONTH = '02' THEN A.S_NEW ELSE '' END) AS S_N_02
+			   ,MAX(CASE WHEN A.S_MONTH = '03' THEN A.S_NEW ELSE '' END) AS S_N_03
+			   ,MAX(CASE WHEN A.S_MONTH = '04' THEN A.S_NEW ELSE '' END) AS S_N_04
+			   ,MAX(CASE WHEN A.S_MONTH = '05' THEN A.S_NEW ELSE '' END) AS S_N_05
+			   ,MAX(CASE WHEN A.S_MONTH = '06' THEN A.S_NEW ELSE '' END) AS S_N_06
+			   ,MAX(CASE WHEN A.S_MONTH = '07' THEN A.S_NEW ELSE '' END) AS S_N_07
+			   ,MAX(CASE WHEN A.S_MONTH = '08' THEN A.S_NEW ELSE '' END) AS S_N_08
+			   ,MAX(CASE WHEN A.S_MONTH = '09' THEN A.S_NEW ELSE '' END) AS S_N_09
+			   ,MAX(CASE WHEN A.S_MONTH = '10' THEN A.S_NEW ELSE '' END) AS S_N_10
+			   ,MAX(CASE WHEN A.S_MONTH = '11' THEN A.S_NEW ELSE '' END) AS S_N_11
+			   ,MAX(CASE WHEN A.S_MONTH = '12' THEN A.S_NEW ELSE '' END) AS S_N_12
+			   ,MAX(CASE WHEN A.S_MONTH = '01' THEN A.S_ED ELSE '' END) AS S_E_01
+			   ,MAX(CASE WHEN A.S_MONTH = '02' THEN A.S_ED ELSE '' END) AS S_E_02
+			   ,MAX(CASE WHEN A.S_MONTH = '03' THEN A.S_ED ELSE '' END) AS S_E_03
+			   ,MAX(CASE WHEN A.S_MONTH = '04' THEN A.S_ED ELSE '' END) AS S_E_04
+			   ,MAX(CASE WHEN A.S_MONTH = '05' THEN A.S_ED ELSE '' END) AS S_E_05
+			   ,MAX(CASE WHEN A.S_MONTH = '06' THEN A.S_ED ELSE '' END) AS S_E_06
+			   ,MAX(CASE WHEN A.S_MONTH = '07' THEN A.S_ED ELSE '' END) AS S_E_07
+			   ,MAX(CASE WHEN A.S_MONTH = '08' THEN A.S_ED ELSE '' END) AS S_E_08
+			   ,MAX(CASE WHEN A.S_MONTH = '09' THEN A.S_ED ELSE '' END) AS S_E_09
+			   ,MAX(CASE WHEN A.S_MONTH = '10' THEN A.S_ED ELSE '' END) AS S_E_10
+			   ,MAX(CASE WHEN A.S_MONTH = '11' THEN A.S_ED ELSE '' END) AS S_E_11
+			   ,MAX(CASE WHEN A.S_MONTH = '12' THEN A.S_ED ELSE '' END) AS S_E_12
+	      FROM (
+        SELECT A.S_YEAR
+			   ,A.S_MONTH
+			   ,IFNULL(B.S_NEW,0) AS S_NEW
+			   ,IFNULL(C.S_ED,0) AS S_ED
+		  FROM (
+			   SELECT DATE_FORMAT(A.S_MONTH,'%Y') AS S_YEAR
+					  ,DATE_FORMAT(A.S_MONTH,'%m') AS S_MONTH
+				 FROM (
+					  SELECT S_MONTH
+						FROM (
+							 SELECT @DATE := DATE_ADD(@DATE, INTERVAL 1 MONTH) AS S_MONTH 
+					           FROM MYSQL.HELP_RELATION , (
+							   		SELECT @DATE:= DATE_SUB(CONCAT((#{condYear}-4),'01','01'), INTERVAL 1 MONTH)) S_MONTH
+						        	 WHERE @DATE BETWEEN @DATE AND DATE_SUB(CONCAT(#{condYear},'12','01'), INTERVAL 1 MONTH
+							         	)
+				   		  ) A
+				   ) A
+				   ORDER BY DATE_FORMAT(A.S_MONTH,'%Y%m') ASC
+		  	   ) A LEFT OUTER JOIN (
+		  	   			SELECT DATE_FORMAT(B.CRTE_DTTM, '%Y') AS S_YEAR
+						       ,DATE_FORMAT(B.CRTE_DTTM, '%m') AS S_MONTH
+						       ,COUNT(1) as S_NEW
+						  FROM CYL_KAIT_TRUBL_MDAT_MST A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+													     ON A.TRUBL_MDAT_NO = B.MAPNG_KEY
+						                                 AND B.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+						                                 AND B.USE_YN = 'Y'
+						                                 AND A.STTUS != 'TM000'
+						  WHERE DATE_FORMAT(B.CRTE_DTTM, '%Y') BETWEEN (#{condYear}-4) AND #{condYear}
+						  GROUP BY DATE_FORMAT(B.CRTE_DTTM, '%Y'),DATE_FORMAT(B.CRTE_DTTM, '%m')
+		  	   	   ) B
+				   ON A.S_YEAR = B.S_YEAR
+				   AND A.S_MONTH = B.S_MONTH
+				   LEFT OUTER JOIN (
+		  	   			SELECT DATE_FORMAT(B.UPDT_DTTM, '%Y') AS S_YEAR
+						       ,DATE_FORMAT(B.UPDT_DTTM, '%m') AS S_MONTH
+						       ,COUNT(1) as S_ED
+						  FROM CYL_KAIT_TRUBL_MDAT_MST A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+													     ON A.TRUBL_MDAT_NO = B.MAPNG_KEY
+						                                 AND B.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+						                                 AND B.USE_YN = 'Y'
+						  WHERE DATE_FORMAT(B.UPDT_DTTM, '%Y') BETWEEN (#{condYear}-4) AND #{condYear}
+						    AND (A.STTUS LIKE 'TM99%' OR A.MDAT_CONFM = 'Y')
+						  GROUP BY DATE_FORMAT(B.UPDT_DTTM, '%Y'),DATE_FORMAT(B.UPDT_DTTM, '%m')
+		   	   	   ) C
+		  	   	   ON A.S_YEAR = C.S_YEAR
+				   AND A.S_MONTH = C.S_MONTH
+			 ORDER BY  A.S_YEAR ASC,A.S_MONTH ASC
+			 ) A
+	   GROUP BY A.S_YEAR
+    </select>
+</mapper>

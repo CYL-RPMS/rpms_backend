@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Ty">
+	<!--[통신분쟁]2022-01-03 / Kait-79 / by ihpark / 사건분류별 통계 사용여부 매핑 -> AND A.USE_AT ='Y' 추가-->
+	<!--[통신분쟁]2021-07-28 / Kait-47 / by ihpark / 분쟁유형별 현황 통계 전체 통계 추가 total 추가-->
+ 	<select id="list" parameterType="paramMap" resultType="paramMap">
+        SELECT A.L_CODE
+	  		   ,A.L_CODE_NM
+	  		   ,A.M_CODE
+	  		   ,A.M_CODE_NM
+	  		   ,A.S_CODE
+	  		   ,A.S_CODE_NM
+	  		   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'01') THEN 1 ELSE 0 END) AS S_1
+	  		   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'02') THEN 1 ELSE 0 END) AS S_2
+	  		   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'03') THEN 1 ELSE 0 END) AS S_3
+	  		   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'04') THEN 1 ELSE 0 END) AS S_4
+	  		   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'05') THEN 1 ELSE 0 END) AS S_5
+	  		   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'06') THEN 1 ELSE 0 END) AS S_6
+	  		   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'07') THEN 1 ELSE 0 END) AS S_7
+	  		   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'08') THEN 1 ELSE 0 END) AS S_8
+	  		   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'09') THEN 1 ELSE 0 END) AS S_9
+	  		   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'10') THEN 1 ELSE 0 END) AS S_10
+	  		   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'11') THEN 1 ELSE 0 END) AS S_11
+	  		   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y%m') = CONCAT(#{condYear},'12') THEN 1 ELSE 0 END) AS S_12
+			   ,SUM(CASE WHEN DATE_FORMAT(C.CRTE_DTTM,'%Y') = #{condYear} THEN 1 ELSE 0 END) AS total
+	  	  FROM (
+	  	       SELECT A.CODE as L_CODE
+	  		   		  ,A.CODE_NM AS L_CODE_NM
+	  		   		  ,B.CODE AS M_CODE
+	  		   		  ,B.CODE_NM AS M_CODE_NM
+ 	  		   	 	  ,C.CODE AS S_CODE
+	  		   		  ,C.CODE_NM AS S_CODE_NM
+	  	  		 FROM CYL_CMM_0004_TC A LEFT OUTER JOIN CYL_CMM_0004_TC B
+	  	  						 		ON A.CODE = B.UPR_CODE
+	  	  						 		AND B.UPR_CODE != '0'
+	  	  						 		LEFT OUTER JOIN CYL_CMM_0004_TC C
+	  	  						 		ON B.CODE = C.UPR_CODE
+	  	  						 		AND C.UPR_CODE != '0'
+	  	  		<choose>
+	  	  			<when test="condYear lte 2023">
+	  	  				/*2023년까지 분쟁유형*/
+						WHERE A.GRP_ID = 'DM_TY_2023'
+					</when>
+					<otherwise>
+						/*2024년이후 분쟁유형*/
+						WHERE A.GRP_ID = 'DM_TY'
+					</otherwise>
+				</choose>
+				  AND A.USE_AT ='Y'
+		   		  AND A.UPR_CODE = '0'
+			   ) A LEFT OUTER JOIN CYL_KAIT_TRUBL_MDAT_MST B
+				   ON A.L_CODE = B.DM_TY_L
+				   AND A.M_CODE = B.DM_TY_M
+				   AND A.S_CODE = B.DM_TY_S
+				   LEFT OUTER JOIN CYL_CMM_DB_USE_MAPNG C
+				   ON B.TRUBL_MDAT_NO = C.MAPNG_KEY
+				   AND C.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+				   AND C.USE_YN = 'Y'
+				   AND DATE_FORMAT(C.CRTE_DTTM,'%Y') = #{condYear}
+	     GROUP BY A.L_CODE
+	  		 	  ,A.L_CODE_NM
+	  		 	  ,A.M_CODE
+	  		 	  ,A.M_CODE_NM
+	  		 	  ,A.S_CODE
+	  		 	  ,A.S_CODE_NM
+		 ORDER BY A.S_CODE ASC
+    </select>
+	<!--[통신분쟁]2021-07-05 / Kait-36 / by ihpark / 통계 산출-->
+	<select id="listCode" parameterType="paramMap" resultType="paramMap">
+		select
+			   cct.CODE,
+			   cct.CODE_NM,
+			   cct2.CODE as UPCODE,
+			   cct2.CODE_NM as UPCODE_NM
+		from cyl_cmm_0004_tc cct,
+			 (
+			 select cctSub.CODE, cctSub.CODE_NM , cctSub.UPR_CODE
+			 from cyl_cmm_0004_tc cctSub
+			<choose>
+				<when test="condYear lte 2023">
+					/*2023년까지 분쟁유형*/
+					where cctSub.GRP_ID ='DM_TY_2023'
+				</when>
+				<otherwise>
+					/*2024년이후 분쟁유형*/
+					where cctSub.GRP_ID ='DM_TY'
+				</otherwise>
+			</choose>
+			 ) cct2
+		where 1=1
+		<choose>
+			<when test="condYear lte 2023">
+				/*2023년까지 분쟁유형*/
+				and cct.GRP_ID ='DM_TY_2023'
+			</when>
+			<otherwise>
+				/*2024년이후 분쟁유형*/
+				and cct.GRP_ID ='DM_TY'
+			</otherwise>
+		</choose>
+		  and cct.CODE = cct2.UPR_CODE
+		  and cct.UPR_CODE = '0'
+		  and cct.USE_AT ='Y'
+		order by cct.CODE,cct2.code
+	</select>
+
+	<select id="selectHiercodeSubList" parameterType="paramMap" resultType="paramMap">
+		/* CylCmmHierDetailCode.selectHiercodeSubList */
+		SELECT A.GRP_ID,
+			A.UPR_CODE,
+			A.CODE,
+			A.CODE_NM,
+			A.USE_AT AS CODE_USE_AT,
+			(SELECT USER_NM FROM CYL_CMM_0100_VN WHERE USER_ID = A.CRTE_USER_ID) AS CRTE_USER_NM,
+			A.CODE_SN,
+			A.CRTE_DTTM,
+			A.CODE_DC
+		FROM CYL_CMM_0004_TC A
+		WHERE A.GRP_ID = #{grp_id}
+		AND A.UPR_CODE = #{upr_code}
+	</select>
+
+	<select id="selectTrubleStat" parameterType="paramMap" resultType="paramMap">
+		select
+			   ifnull(sum(case when DATE_FORMAT(b.CRTE_DTTM,'%Y%m') = concat(#{condYear},'01') then 1 else 0 end ),0) as m1,
+			   ifnull(sum(case when DATE_FORMAT(b.CRTE_DTTM,'%Y%m') = concat(#{condYear},'02') then 1 else 0 end ),0) as m2,
+			   ifnull(sum(case when DATE_FORMAT(b.CRTE_DTTM,'%Y%m') = concat(#{condYear},'03') then 1 else 0 end ),0) as m3,
+			   ifnull(sum(case when DATE_FORMAT(b.CRTE_DTTM,'%Y%m') = concat(#{condYear},'04') then 1 else 0 end ),0) as m4,
+			   ifnull(sum(case when DATE_FORMAT(b.CRTE_DTTM,'%Y%m') = concat(#{condYear},'05') then 1 else 0 end ),0) as m5,
+			   ifnull(sum(case when DATE_FORMAT(b.CRTE_DTTM,'%Y%m') = concat(#{condYear},'06') then 1 else 0 end ),0) as m6,
+			   ifnull(sum(case when DATE_FORMAT(b.CRTE_DTTM,'%Y%m') = concat(#{condYear},'07') then 1 else 0 end ),0) as m7,
+			   ifnull(sum(case when DATE_FORMAT(b.CRTE_DTTM,'%Y%m') = concat(#{condYear},'08') then 1 else 0 end ),0) as m8,
+			   ifnull(sum(case when DATE_FORMAT(b.CRTE_DTTM,'%Y%m') = concat(#{condYear},'09') then 1 else 0 end ),0) as m9,
+			   ifnull(sum(case when DATE_FORMAT(b.CRTE_DTTM,'%Y%m') = concat(#{condYear},'10') then 1 else 0 end ),0) as m10,
+			   ifnull(sum(case when DATE_FORMAT(b.CRTE_DTTM,'%Y%m') = concat(#{condYear},'11') then 1 else 0 end ),0) as m11,
+			   ifnull(sum(case when DATE_FORMAT(b.CRTE_DTTM,'%Y%m') = concat(#{condYear},'12') then 1 else 0 end ),0) as m12
+		from CYL_KAIT_TRUBL_MDAT_MST a
+				 left outer join cyl_cmm_db_use_mapng b on a.trubl_mdat_no = b.MAPNG_KEY
+		where 1=1
+		  and date_format(b.CRTE_DTTM,'%Y') = #{condYear}
+		  and a.DM_TY_S =#{dm_ty_s}
+		  and b.MAPNG_TABLE='CYL_KAIT_TRUBL_MDAT_MST'
+	</select>
+</mapper>

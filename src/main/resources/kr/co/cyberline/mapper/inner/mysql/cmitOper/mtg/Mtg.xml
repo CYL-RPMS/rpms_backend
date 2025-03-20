@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Mtg">
+ 	<sql id="incCond">
+		WHERE 'Y' =  F_RET_USE_YN(A.CNFRNC_NO,'CYL_KAIT_CNFRNC')
+		<if test="cnfrnc_sj != null and cnfrnc_sj != ''">
+		  AND INSTR(UPPER(REPLACE(A.cnfrnc_sj, ' ', '')), UPPER(REPLACE(#{cnfrnc_sj}, ' ', ''))) > 0
+		</if>
+		<if test="st_dt != null and st_dt != ''">
+		  AND A.CNFRNC_DAY <![CDATA[>=]]> #{st_dt}
+		</if>
+		<if test="ed_dt != null and ed_dt != ''">
+		  AND A.CNFRNC_DAY <![CDATA[<=]]> #{ed_dt}
+		</if>
+		AND A.CNFRNC_DAY LIKE CONCAT(#{search_year},'-',#{search_month},'%')		
+	</sql>
+	
+	<sql id="cf_incCond">
+		where B.AUTHOR_ID ='ROLE_MFCMM'
+		<if test="con_list != null and con_list != ''">
+				AND A.USER_ID NOT IN 
+			<foreach separator="," item="vo" index="i" collection="con_list" open="(" close=")">
+				#{vo.user_id}
+			</foreach>
+		</if>
+		<if test="user_nm != null and user_nm != ''">
+		  AND INSTR(UPPER(REPLACE(A.USER_NM, ' ', '')), UPPER(REPLACE(#{user_nm}, ' ', ''))) > 0
+		</if>
+		<if test="cttpc != null and cttpc != ''">
+		  AND INSTR(UPPER(REPLACE(A.CTTPC, ' ', '')), UPPER(REPLACE(#{cttpc}, ' ', ''))) > 0
+		</if>
+	</sql>
+
+	<sql id="userList_incCond">
+		<where>
+			AND A.USER_STTUS_CD = 'p'
+			<if test="cond_user_nm != null and cond_user_nm != ''">
+			  AND A.USER_NM LIKE CONCAT('%',#{cond_user_nm},'%')
+			</if>
+			<if test="cond_login_id != null and cond_login_id != ''">
+			  AND A.LOGIN_ID LIKE CONCAT('%',#{cond_login_id},'%')
+			</if>
+			<if test="cond_cttpc != null and cond_cttpc != ''">
+			  AND REPLACE(A.CTTPC,'-','') LIKE CONCAT('%',#{cond_cttpc},'%')
+			</if>
+		</where>
+	</sql>
+	
+	<select id="conferencelist" parameterType="paramMap" resultType="paramMap">
+       <include refid="CylCmm.prefixPagination" />
+			SELECT A.USER_ID 
+				  ,A.USER_NM 
+				  ,A.CTTPC 
+				  ,A.CRTE_DTTM 
+				  ,B.AUTHOR_ID
+				 ,(SELECT COUNT(*) 
+					  FROM CYL_CMM_0100_TN A INNER JOIN CYL_CMM_0101_TN B
+					   							ON A.USER_ID =B.USER_ID 
+					<include refid="cf_incCond"/> 
+      			  															) AS TOT
+			  FROM CYL_CMM_0100_TN A INNER JOIN CYL_CMM_0101_TN B
+			   							ON A.USER_ID =B.USER_ID 
+			<include refid="cf_incCond"/> 
+               ORDER BY A.CRTE_DTTM DESC            
+  	 <include refid="CylCmm.suffixPagination" />
+    </select>
+
+	<insert id="create" parameterType="paramMap">
+		INSERT INTO
+    		CYL_KAIT_CNFRNC
+    		(
+    			CNFRNC_NO
+    			,CNFRNC_SJ
+				,CNFRNC_DAY
+				,CNFRNC_HOUR
+				,CNFRNC_MIN
+				,CNFRNC_HOUR_END
+				,CNFRNC_MIN_END
+				,APPLCNT
+				,APPLCNT_NM
+				,CNFRNC_CN
+				
+    		) VALUES (
+				#{cnfrnc_no}    		
+    			,#{cnfrnc_sj}
+    			,#{cnfrnc_day}    		
+    			,#{cnfrnc_hour}
+    			,#{cnfrnc_min}
+    			,#{cnfrnc_hour_end}
+    			,#{cnfrnc_min_end}
+    			,#{applcnt}
+    			,#{applcnt_nm}
+    			,#{cnfrnc_cn}
+    		);
+
+    	INSERT INTO 
+    		CYL_CMM_DB_USE_MAPNG	
+    		(
+    			MAPNG_KEY
+				,MAPNG_TABLE
+				,USE_YN
+				,CRTE_USER_ID
+				,CRTE_DTTM
+    		) VALUES (
+    			#{cnfrnc_no}
+    			,'CYL_KAIT_CNFRNC'
+    			,'Y'
+    			,#{login_user_id}
+    			,NOW()
+    		);
+	</insert>
+   
+	<select id="createKey" resultType="paramMap">
+		SELECT CONCAT('KAIT_CF_',CURDATE()+0,'_',IFNULL(LPAD(MAX(REPLACE(CNFRNC_NO,CONCAT('KAIT_CF_',CURDATE()+0,'_'),'')) + 1,4,0),'0001')) AS CNFRNC_NO
+		  FROM CYL_KAIT_CNFRNC
+		 WHERE CNFRNC_NO LIKE CONCAT('KAIT_CF_',CURDATE()+0,'%')
+    </select> 
+    
+    
+	<select id="calendar" parameterType="paramMap" resultType="paramMap">
+		SELECT A.S_WEEK
+		       ,MAX(CASE WHEN S_DAYOFWEEK = 2 THEN DAY(A.S_DATE) ELSE ' ' END) AS MON
+		       ,MAX(CASE WHEN S_DAYOFWEEK = 3 THEN DAY(A.S_DATE) ELSE ' ' END) AS TUE
+		       ,MAX(CASE WHEN S_DAYOFWEEK = 4 THEN DAY(A.S_DATE) ELSE ' ' END) AS WED
+		       ,MAX(CASE WHEN S_DAYOFWEEK = 5 THEN DAY(A.S_DATE) ELSE ' ' END) AS THU
+		       ,MAX(CASE WHEN S_DAYOFWEEK = 6 THEN DAY(A.S_DATE) ELSE ' ' END) AS FRI
+		       ,MAX(CASE WHEN S_DAYOFWEEK = 7 THEN DAY(A.S_DATE) ELSE ' ' END) AS SAT
+		       ,MAX(CASE WHEN S_DAYOFWEEK = 1 THEN DAY(A.S_DATE) ELSE ' ' END) AS SUN
+		  FROM (
+			   SELECT DATE_FORMAT(A.DATES,'%Y-%m-%d') AS S_DATE
+		      		  ,DAYOFWEEK(A.DATES) AS S_DAYOFWEEK
+		      		  ,WEEK(A.DATES,5) S_WEEK
+				 FROM (
+					  SELECT DATES
+		  				FROM (
+		       				 SELECT @DATE := DATE_ADD(@DATE, INTERVAL 1 DAY) AS DATES 
+		          			   FROM MYSQL.HELP_RELATION , (
+		             									  SELECT @DATE:= DATE_SUB(CONCAT(#{search_year},'-',#{search_month},'-01'), INTERVAL 1 DAY)) S_DAY 
+		                 								  WHERE @DATE BETWEEN @DATE AND DATE_SUB(LAST_DAY(CONCAT(#{search_year},'-',#{search_month},'-01')), INTERVAL 1 DAY
+		            									  )
+		       		  ) A
+			   ) A
+			   ORDER BY A.DATES ASC
+			  ) A
+		GROUP BY A.S_WEEK
+	</select>
+	<!--[통신분쟁]2021-08-02 / Kait-52 / by ihpark / 회의 일정관리 10개 이상 나오지 않는 오류 수정-->
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+        <!--<include refid="CylCmm.prefixPagination" />-->
+		SELECT A.CNFRNC_NO
+			   ,A.CNFRNC_SJ
+			   ,A.CNFRNC_CN
+			   ,A.APPLCNT
+			   ,A.APPLCNT_NM
+			   ,A.CNFRNC_DAY
+			   ,DATE_FORMAT(CONCAT(A.CNFRNC_DAY,' ',A.CNFRNC_HOUR,':',A.CNFRNC_MIN),'%H:%i') AS CNFRNC_TIME
+			   ,DATE_FORMAT(A.CNFRNC_DAY ,'%d') AS DE
+			   ,(SELECT COUNT(*)
+				  	 FROM CYL_KAIT_CNFRNC A INNER JOIN CYL_CMM_DB_USE_MAPNG C
+		       				   				ON A.CNFRNC_NO = C.MAPNG_KEY
+		                       				AND C.MAPNG_TABLE = 'CYL_KAIT_CNFRNC'
+						                    AND C.USE_YN = 'Y'
+				) AS TOT
+		FROM CYL_KAIT_CNFRNC A INNER JOIN CYL_CMM_DB_USE_MAPNG C
+		       				   ON A.CNFRNC_NO = C.MAPNG_KEY
+		                       AND C.MAPNG_TABLE = 'CYL_KAIT_CNFRNC'
+		                       AND C.USE_YN = 'Y'
+        <include refid="incCond"/>
+		ORDER BY A.CNFRNC_DAY ASC, A.CNFRNC_HOUR ASC, A.CNFRNC_MIN ASC
+		<!--<include refid="CylCmm.suffixPagination" />-->
+    </select>
+    
+    <select id="view" parameterType="paramMap" resultType="paramMap">
+		SELECT A.CNFRNC_NO
+			  ,A.CNFRNC_SJ 
+			  ,A.CNFRNC_DAY
+			  ,A.CNFRNC_HOUR
+			  ,A.CNFRNC_MIN
+			  ,A.CNFRNC_HOUR_END
+			  ,A.CNFRNC_MIN_END
+			  ,A.APPLCNT
+			  ,A.APPLCNT_NM
+			  ,C.USER_NM
+			  ,A.CNFRNC_CN
+			  ,DATE_FORMAT(CONCAT(A.CNFRNC_DAY,' ', A.CNFRNC_HOUR,':',A.CNFRNC_MIN),'%Y-%m-%d %T') AS CNFRNC_TIME
+			  ,DATE_FORMAT(CONCAT(A.CNFRNC_DAY,' ', A.CNFRNC_HOUR_END,':',A.CNFRNC_MIN_END),'%Y-%m-%d %T') AS CNFRNC_TIME_END
+			  ,GROUP_CONCAT(B.CMSNER_NM SEPARATOR '    ') as CMSNER 
+		 FROM CYL_KAIT_CNFRNC A INNER JOIN CYL_KAIT_CNFRNC_CMSNER B
+		 						ON A.CNFRNC_NO = B.CNFRNC_NO
+		 						LEFT OUTER JOIN CYL_CMM_0100_TN C
+		 						ON A.APPLCNT = C.USER_ID 
+		 WHERE A.CNFRNC_NO =#{cnfrnc_no} 
+    </select>
+    
+    <select id="con_list" parameterType="paramMap" resultType="paramMap">
+			SELECT CMSNER_NO
+				   ,CMSNER_NM
+			  FROM CYL_KAIT_CNFRNC_CMSNER
+			 WHERE CNFRNC_NO =#{cnfrnc_no} 
+    </select>
+            
+    <select id="agendatrublList" parameterType="paramMap" resultType="paramMap">
+		SELECT A.CNFRNC_NO 
+			  ,A.AGENDA_NO 
+			  ,A.AGENDA_SE
+			  ,A.TRUBL_MDAT_NO
+			  ,B.DM_TY_L
+			  ,B.DM_TY_M
+			  ,B.DM_TY_S
+			  ,F_COMM_SCLSRT_CODE_NM('DM_TY',B.DM_TY_L) AS DM_TY_L_NM
+		      ,F_COMM_SCLSRT_CODE_NM('DM_TY',B.DM_TY_M) AS DM_TY_M_NM
+		      ,F_COMM_SCLSRT_CODE_NM('DM_TY',B.DM_TY_S) AS DM_TY_S_NM
+			  ,B.P_NM
+			  ,A.CNFRNC_RSLT
+			  ,B.STTUS
+			  ,C.ENDD
+		  FROM CYL_KAIT_CNFRNC_AGENDA A  LEFT OUTER JOIN CYL_KAIT_TRUBL_MDAT_MST B 
+		  								 ON B.TRUBL_MDAT_NO=A.TRUBL_MDAT_NO
+		  							     INNER JOIN CYL_KAIT_TRUBL_MDAT_DTL C
+		  					             ON B.TRUBL_MDAT_NO = C.TRUBL_MDAT_NO
+		WHERE A.CNFRNC_NO =#{cnfrnc_no}
+    </select>
+        
+   	<update id="modify_delete" parameterType="paramMap">
+    	UPDATE CYL_CMM_DB_USE_MAPNG
+    	   SET UPDT_USER_ID = #{login_user_id}
+			   ,UPDT_DTTM = NOW()
+			   ,USE_YN = 'N'
+		 WHERE MAPNG_KEY = #{cnfrnc_no}
+		   AND MAPNG_TABLE = 'CYL_KAIT_CNFRNC'
+    </update>
+    
+	<update id="modify" parameterType="paramMap">
+	   	UPDATE CYL_KAIT_CNFRNC
+	   	   SET CNFRNC_DAY = STR_TO_DATE(#{cnfrnc_day}, '%Y-%m-%d')
+	   	       ,CNFRNC_HOUR = #{cnfrnc_hour}
+	   	       ,CNFRNC_MIN = #{cnfrnc_min}
+	   	       ,CNFRNC_HOUR_END = #{cnfrnc_hour_end}
+			   ,CNFRNC_MIN_END = #{cnfrnc_min_end}
+	   	       ,APPLCNT = #{applcnt}
+	   	       ,APPLCNT_NM = #{applcnt_nm}
+			   ,CNFRNC_CN = #{cnfrnc_cn}
+	   	 WHERE CNFRNC_NO = #{cnfrnc_no}; 
+	   	 
+		UPDATE CYL_CMM_DB_USE_MAPNG	
+		   SET CRTE_USER_ID = #{login_user_id}
+			  ,CRTE_DTTM = NOW()
+	    WHERE MAPNG_KEY = #{cnfrnc_no} 
+	      AND MAPNG_TABLE = 'CYL_KAIT_CNFRNC';
+    </update>
+    
+    <select id="cmsnerList" parameterType="paramMap" resultType="paramMap">
+       <include refid="CylCmm.prefixPagination" />
+				select A.AGENDA_NO 
+					  ,A.CMSNER_NO 
+					  ,B.USER_NM 
+					  ,(SELECT COUNT(*) 
+				    	 from cyl_kait_agenda_mdat A left outer join cyl_cmm_0100_tn B
+				                			on A.CMSNER_NO =B.USER_ID 
+						where  AGENDA_NO=#{agenda_no} 
+					  )
+					  
+				  from cyl_kait_agenda_mdat A left outer join cyl_cmm_0100_tn B
+				                    			on A.CMSNER_NO =B.USER_ID 
+				  where  AGENDA_NO=#{agenda_no}     
+		<include refid="CylCmm.suffixPagination" />
+    </select>
+    
+    <select id="agendaMdatView" parameterType="paramMap" resultType="paramMap">
+			SELECT A.AGENDA_CN 
+			      ,A.AGENDA_NO 
+			      ,B.USER_NM
+			  FROM CYL_KAIT_AGENDA_MDAT A LEFT OUTER JOIN CYL_CMM_0100_TN B
+							                		ON A.CMSNER_NO =B.USER_ID 
+			 WHERE A.CMSNER_NO =#{cmsner_no}
+			  AND  A.AGENDA_NO =#{agenda_no}
+    </select>
+    
+    <select id="userList" parameterType="paramMap" resultType="paramMap">
+       <include refid="CylCmm.prefixPagination" />
+			SELECT A.USER_ID 
+				  ,A.USER_NM
+				  ,A.LOGIN_ID
+				  ,A.CTTPC 
+				  ,A.CLSF
+				  ,A.CRTE_DTTM 
+				  ,B.AUTHOR_ID
+				 ,(SELECT COUNT(*) 
+					  FROM CYL_CMM_0100_TN A INNER JOIN CYL_CMM_0101_TN B
+					   							ON A.USER_ID =B.USER_ID
+					  <include refid="userList_incCond"/>
+  			  															) AS TOT
+			  FROM CYL_CMM_0100_TN A INNER JOIN CYL_CMM_0101_TN B
+			   							ON A.USER_ID =B.USER_ID
+				<include refid="userList_incCond"/>
+               ORDER BY A.CRTE_DTTM DESC        
+		<include refid="CylCmm.suffixPagination" />
+    </select>
+    
+</mapper>

@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="MenuManage">
+
+    <select id="selectMenuManageList" parameterType="menuManageVO" resultType="menuManageVO">
+        /* MenuManage.selectMenuManageList : 메뉴관리 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        SELECT A.*, COUNT(1) OVER() AS TOT FROM (
+            SELECT
+                A.MENU_ID, A.UPR_MENU_ID, A.MENU_NM_KR, A.MENU_NM_EN,
+                A.MENU_SN, A.MENU_DC, A.MENU_IMG_PATH, A.MENU_IMG_NM, A.HIDE_AT,
+                B.MENU_NM_KR AS UPR_MENU_NM_KR, B.MENU_NM_EN AS UPR_MENU_NM_EN,
+                A.CRTE_USER_ID, A.CRTE_DTTM, A.UPDT_USER_ID, A.UPDT_DTTM,
+                LEVEL AS LVL
+            FROM CYL_CMM_0300_TN A
+            LEFT OUTER JOIN CYL_CMM_0300_TN B ON B.MENU_ID = A.UPR_MENU_ID
+            WHERE 1=1
+            START WITH A.UPR_MENU_ID IS NULL
+            CONNECT BY A.UPR_MENU_ID = PRIOR A.MENU_ID
+            ORDER SIBLINGS BY A.MENU_SN ASC
+        ) A
+        WHERE 1=1
+        <if test="searchKeyword != null and searchKeyword != ''">
+            AND ( A.MENU_NM_KR LIKE '%' || #{searchKeyword} || '%' OR A.MENU_NM_EN LIKE '%' || #{searchKeyword} || '%' )
+        </if>
+        <if test="condHideAt != null and condHideAt != ''">
+            AND A.HIDE_AT = #{condHideAt}
+        </if>
+        <!--<include refid="CylCmm.orderby" />-->
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+
+    <select id="selectSubMenuList" parameterType="menuManageVO" resultType="menuManageVO">
+        /* MenuManage.selectSubMenuList : 하위 메뉴 목록 조회 */
+        <![CDATA[
+        SELECT
+            A.MENU_ID, A.UPR_MENU_ID, A.MENU_NM_KR, A.MENU_NM_EN,
+            A.MENU_SN, A.MENU_DC, A.MENU_IMG_PATH, A.MENU_IMG_NM, A.HIDE_AT,
+            A.CRTE_USER_ID, A.CRTE_DTTM, A.UPDT_USER_ID, A.UPDT_DTTM
+        FROM CYL_CMM_0300_TN A
+        WHERE A.UPR_MENU_ID = #{upr_menu_id}
+        ]]>
+    </select>
+
+    <select id="selectAuthorMenuManageList" parameterType="authorManageVO" resultType="menuManageVO">
+        /* MenuManage.selectAuthorMenuManageList : 권한에 따른 메뉴 목록 조회 */
+        SELECT
+            A.MENU_ID, A.UPR_MENU_ID, A.MENU_NM_KR, A.MENU_NM_EN, A.MENU_DC,
+            B.MENU_NM_KR AS UPR_MENU_NM_KR, B.MENU_NM_EN AS UPR_MENU_NM_EN,
+            LEVEL AS LVL, DECODE(C.MENU_ID, NULL, 'N', 'Y') AS USE_AT, A.CRTE_USER_ID,
+            A.CRTE_DTTM, A.UPDT_USER_ID, A.UPDT_DTTM
+        FROM CYL_CMM_0300_TN A
+        LEFT OUTER JOIN CYL_CMM_0300_TN B ON B.MENU_ID = A.UPR_MENU_ID
+        LEFT OUTER JOIN CYL_CMM_0301_TN C ON A.MENU_ID = C.MENU_ID
+        <if test="author_id != null and author_id != ''">
+            AND C.AUTHOR_ID = #{author_id}
+        </if>
+        START WITH A.UPR_MENU_ID IS NULL
+        CONNECT BY A.UPR_MENU_ID = PRIOR A.MENU_ID
+        ORDER SIBLINGS BY A.MENU_SN ASC
+    </select>
+
+    <select id="selectUserAuthorMenuRelateList" parameterType="userVO" resultType="menuManageVO">
+        /* MenuManage.selectUserAuthorMenuRelateList : 사용자 권한에 할당된 메뉴 목록 조회 */
+        <![CDATA[
+        SELECT A.MENU_ID, A.UPR_MENU_ID, A.MENU_NM_KR, A.MENU_NM_EN, A.MENU_URL,
+               A.MENU_IMG_PATH, A.MENU_IMG_NM, A.MENU_SN, A.HIDE_AT, LEVEL AS LVL,
+               SUBSTR(SYS_CONNECT_BY_PATH(A.MENU_NM_KR, ':'),2,LENGTH(SYS_CONNECT_BY_PATH(A.MENU_NM_KR, ':'))) AS MENU_PATH
+        FROM (
+            SELECT
+                DISTINCT TA.MENU_ID, TB.UPR_MENU_ID, TB.MENU_NM_KR, TB.MENU_NM_EN, NVL(TC.PRGM_URL, TD.PRGM_URL) AS MENU_URL
+                , TB.MENU_IMG_PATH, TB.MENU_IMG_NM, TB.MENU_SN, TB.HIDE_AT
+            FROM CYL_CMM_0301_TN TA
+            INNER JOIN CYL_CMM_0300_TN TB ON TA.MENU_ID = TB.MENU_ID
+            LEFT OUTER JOIN (
+            ]]>
+        SELECT A.P_MENU_ID, A.MENU_ID, a.MENU_NM_KR, C.PRGM_URL, MENU_SN, ROW_NUMBER() OVER(PARTITION BY P_MENU_ID ORDER BY ORDER_SN) RN FROM (
+        SELECT A.MENU_ID, A.UPR_MENU_ID, a.MENU_NM_KR, a.MENU_SN, SUBSTR(SYS_CONNECT_BY_PATH(A.MENU_ID, '.'),2, 20) P_MENU_ID, ROWNUM AS ORDER_SN, LEVEL LVL FROM (
+        SELECT A.MENU_ID, B.UPR_MENU_ID, B.MENU_NM_KR, B.MENU_SN
+        FROM CYL_CMM_0301_TN A
+        INNER JOIN CYL_CMM_0300_TN B ON A.MENU_ID = B.MENU_ID AND B.HIDE_AT = 'N'
+        WHERE
+        <choose>
+            <when test="user_id != null and user_id != ''">
+                EXISTS ( SELECT AUTHOR_ID FROM CYL_CMM_0101_TN WHERE AUTHOR_ID = A.AUTHOR_ID AND USER_ID = #{user_id}
+                <if test="author_id != null and author_id != ''">
+                    AND AUTHOR_ID = #{author_id}
+                </if>
+                )
+            </when>
+            <otherwise>
+                AUTHOR_ID = #{author_id}
+            </otherwise>
+        </choose>
+        GROUP BY A.MENU_ID, B.UPR_MENU_ID, B.MENU_NM_KR, B.MENU_SN
+        ) A
+        START WITH A.UPR_MENU_ID IS NULL
+        CONNECT BY A.UPR_MENU_ID = PRIOR A.MENU_ID
+        ORDER SIBLINGS BY A.MENU_SN
+        ) A
+        INNER JOIN CYL_CMM_0304_TN B ON INSTR(A.P_MENU_ID || A.MENU_ID, B.MENU_ID) > 0
+        INNER JOIN CYL_CMM_0303_TN C ON B.PRGM_ID = C.PRGM_ID AND C.PRGM_CD = '01'
+        ) TC ON TC.P_MENU_ID = TA.MENU_ID AND RN = 1
+        LEFT OUTER JOIN (SELECT B.MENU_ID, C.PRGM_URL FROM CYL_CMM_0300_TN A
+        INNER JOIN CYL_CMM_0304_TN B ON A.MENU_ID = B.MENU_ID
+        INNER JOIN CYL_CMM_0303_TN C ON B.PRGM_ID = C.PRGM_ID AND C.PRGM_CD = '01'
+        WHERE HIDE_AT = 'N' ) TD
+        ON TA.MENU_ID = TD.MENU_ID
+        WHERE 1=1
+        <if test="user_id != null and user_id != ''">
+            <![CDATA[
+            AND EXISTS (
+              SELECT AUTHOR_ID FROM CYL_CMM_0101_TN WHERE USER_ID = #{user_id} AND AUTHOR_ID = TA.AUTHOR_ID
+            )
+        ]]>
+        </if>
+        <if test="author_id != null and author_id != ''">
+            <![CDATA[
+            AND TA.AUTHOR_ID = #{author_id}
+        ]]>
+        </if>
+        GROUP BY TA.MENU_ID, TB.UPR_MENU_ID, TB.MENU_NM_KR, TB.MENU_NM_EN, NVL(TC.PRGM_URL, TD.PRGM_URL), TB.MENU_IMG_PATH, TB.MENU_IMG_NM, TB.MENU_SN, TB.HIDE_AT
+        ) A
+        <![CDATA[
+        START WITH A.UPR_MENU_ID IS NULL
+        CONNECT BY A.UPR_MENU_ID = PRIOR A.MENU_ID
+        ORDER SIBLINGS BY A.MENU_SN ASC
+        ]]>
+    </select>
+
+    <select id="selectMenuManageDetail" parameterType="menuManageVO" resultType="menuManageVO">
+        /* MenuManage.selectMenuManageDetail : 메뉴관리 상세 조회 */
+        SELECT
+            A.MENU_ID, A.UPR_MENU_ID, A.MENU_NM_KR, A.MENU_NM_EN,
+            A.MENU_SN, A.MENU_DC, A.MENU_IMG_PATH, A.MENU_IMG_NM, A.HIDE_AT,
+            B.MENU_NM_KR AS UPR_MENU_NM_KR, B.MENU_NM_EN AS UPR_MENU_NM_EN,
+            A.CRTE_USER_ID, A.CRTE_DTTM, A.UPDT_USER_ID, A.UPDT_DTTM
+        FROM CYL_CMM_0300_TN A
+        LEFT OUTER JOIN CYL_CMM_0300_TN B ON B.MENU_ID = A.UPR_MENU_ID
+        WHERE A.MENU_ID = #{menu_id}
+    </select>
+
+    <insert id="insertMenuManage" parameterType="menuManageVO">
+        /* MenuManage.insertMenuManage : 메뉴관리 등록 */
+        INSERT INTO CYL_CMM_0300_TN(
+            MENU_ID,
+        <if test="upr_menu_id != null and upr_menu_id != ''">
+            UPR_MENU_ID,
+        </if>
+            MENU_NM_KR, MENU_NM_EN, MENU_SN, HIDE_AT,
+            MENU_DC, MENU_IMG_PATH, MENU_IMG_NM, CRTE_USER_ID, CRTE_DTTM
+        ) VALUES (
+            #{menu_id},
+        <if test="upr_menu_id != null and upr_menu_id != ''">
+            #{upr_menu_id},
+        </if>
+            #{menu_nm_kr}, #{menu_nm_en}, #{menu_sn}, #{hide_at},
+            #{menu_dc}, #{menu_img_path}, #{menu_img_nm}, #{crte_user_id}, SYSDATE
+        )
+    </insert>
+
+    <insert id="insertMenuAuthorRelate" parameterType="menuManageVO">
+        /* MenuManage.insertMenuAuthorRelate : 매뉴권한 관계 등록 */
+        INSERT INTO CYL_CMM_0301_TN(
+            MENU_ID, AUTHOR_ID
+        ) VALUES (
+            #{menu_id}, #{author_id}
+        )
+    </insert>
+
+    <insert id="insertMenuProgramRelate" parameterType="menuManageVO">
+        /* MenuManage.insertMenuProgramRelate : 메뉴에 대한 프로그램 등록 */
+        INSERT INTO CYL_CMM_0304_TN (
+            MENU_ID, PRGM_ID
+        ) VALUES (
+            #{menu_id}, #{prgm_id}
+        )
+    </insert>
+
+    <update id="updateMenuManage" parameterType="menuManageVO">
+        /* MenuManage.updateMenuManage : 메뉴관리 수정 */
+        UPDATE CYL_CMM_0300_TN SET
+              MENU_NM_KR    = #{menu_nm_kr}
+            , MENU_NM_EN    = #{menu_nm_en}
+            , MENU_SN       = #{menu_sn}
+            , MENU_DC       = #{menu_dc}
+            , MENU_IMG_PATH = #{menu_img_path}
+            , HIDE_AT       = #{hide_at}
+            , MENU_IMG_NM   = #{menu_img_nm}
+            , UPDT_USER_ID  = #{updt_user_id}
+            , UPDT_DTTM     = SYSDATE
+        WHERE MENU_ID = #{menu_id}
+    </update>
+
+    <delete id="deleteMenuManage" parameterType="menuManageVO">
+        /* MenuManage.deleteMenuManage : 메뉴관리 삭제 */
+        DELETE FROM CYL_CMM_0300_TN WHERE MENU_ID = #{menu_id}
+    </delete>
+
+    <delete id="deleteMenuAuthorRelate" parameterType="menuManageVO">
+        /* MenuManage.deleteMenuAuthorRelate : 권한에 대한 메뉴 관계 삭제 */
+        DELETE FROM CYL_CMM_0301_TN WHERE
+        <if test="author_id != null and author_id != ''">
+            AUTHOR_ID = #{author_id}
+        </if>
+        <if test="menu_id != null and menu_id != ''">
+            MENU_ID = #{menu_id}
+        </if>
+    </delete>
+
+    <delete id="deleteMenuProgramRelate" parameterType="menuManageVO">
+        /* MenuManage.deleteMenuProgramRelate : 메뉴에 대한 프로그램 삭제 */
+        DELETE FROM CYL_CMM_0304_TN WHERE
+        <if test="menu_id != null and menu_id != ''">
+            MENU_ID = #{menu_id}
+        </if>
+        <if test="prgm_id != null and prgm_id != ''">
+            PRGM_ID = #{prgm_id}
+        </if>
+    </delete>
+
+    <delete id="deleteMenuProgramAuthorRelate" parameterType="menuManageVO">
+        /* MenuManage.deleteMenuProgramAuthorRelate : 메뉴에 대한 프로그램 권한 관계 삭제 */
+        DELETE FROM CYL_CMM_0305_TN WHERE MENU_ID = #{menu_id}
+    </delete>
+</mapper>

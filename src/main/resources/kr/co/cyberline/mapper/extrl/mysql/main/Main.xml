@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Main">
+ 	<sql id="incCond">
+		WHERE 'Y' =  F_RET_USE_YN(A.BN_NO,'CYL_KAIT_BANNER')
+		  AND A.USE_YN = 'Y'
+		  AND 1 = IFNULL(
+		  		  CASE WHEN A.NTHG_TMLMT = 'Y' THEN 1
+		  			   WHEN A.NTHG_TMLMT <![CDATA[<>]]> 'Y' AND DATE_FORMAT(NOW(), '%Y-%m-%d') BETWEEN DATE_FORMAT(A.BGNDE, '%Y-%m-%d') AND DATE_FORMAT(A.ENDDE, '%Y-%m-%d') THEN 1
+		  	      END,0)
+	</sql>
+
+	<select id="bannerList" parameterType="paramMap" resultType="paramMap">
+        /* Main.bannerList : Front Main Banner Select */
+        SELECT A.BN_NO
+			   ,A.BN_ORDER
+			   ,DATE_FORMAT(A.BGNDE, '%Y-%m-%d') AS BGNDE
+			   ,DATE_FORMAT(A.ENDDE, '%Y-%m-%d') AS ENDDE
+			   ,A.NTHG_TMLMT
+			   ,A.USE_YN
+			   ,A.LINK_URL
+			   ,A.LINK_URL_SE
+			   ,F_COMM_FILE_ID(A.BN_NO,'CYL_KAIT_BANNER','ATCH_FILE_ID',1) AS ATCH_FILE_ID
+		       ,F_COMM_FILE_NM(F_COMM_FILE_ID(A.BN_NO,'CYL_KAIT_BANNER','ATCH_FILE_ID',1)) AS ATCH_FILE_ID_NM
+               ,(SELECT COUNT(*) FROM CYL_KAIT_BANNER A <include refid="incCond"/>) AS TOT
+        FROM CYL_KAIT_BANNER A
+        <include refid="incCond"/>
+    </select>
+	<select id="goodsList" parameterType="paramMap" resultType="paramMap">
+        /* Main.goodsList : Front Main Goods Select */
+        SELECT A.GOODS_NO
+			   ,A.GOODS_EXPSR_LC
+			   ,F_COMM_FILE_ID(A.GOODS_NO,'CYL_IBOOK_GOODS','GOODS_IMG_MAIN_L',1) AS ATCH_FILE_ID
+			   ,F_COMM_FILE_NM(F_COMM_FILE_ID(A.GOODS_NO,'CYL_IBOOK_GOODS','GOODS_IMG_MAIN_L',1)) AS ATCH_FILE_ID_NM
+		  FROM CYL_IBOOK_EXPSR_GOODS A
+		 ORDER BY A.GOODS_EXPSR_ORDER ASC
+    </select>
+</mapper>

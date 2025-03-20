@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CvplProcess">
+ 	<sql id="incCond">
+		<if test='sttus == null or sttus == ""'>
+ 		 	WHERE M.STTUS IN ('TM001','TM002','TM999')
+		</if>
+		<if test="sttus != null and sttus != ''">
+		   WHERE M.STTUS = #{sttus}
+		</if>
+		<if test="nm != null and nm != ''">
+		  AND M.NM LIKE CONCAT('%', #{nm}, '%')
+		</if>
+		<if test="p_nm != null and p_nm != ''">
+		  AND ada.P_NM_LIST LIKE CONCAT('%', #{p_nm}, '%')
+		</if>
+		<if test="crte_dttm_str != null and crte_dttm_str != '' and crte_dttm_end != null and crte_dttm_end != ''">
+		  AND DATE_FORMAT(mp.CRTE_DTTM, '%Y-%m-%d') BETWEEN #{crte_dttm} AND #{crte_dttm_end}
+		</if>
+		<if test="trubl_mdat_no != null and trubl_mdat_no != ''">
+		  AND M.TRUBL_MDAT_NO LIKE CONCAT('%', #{trubl_mdat_no}, '%')
+		</if>
+		<if test="reqst_reason != null and reqst_reason != ''">
+		  AND M.REQST_REASON LIKE CONCAT('%', #{reqst_reason}, '%')
+		</if>
+	</sql>
+
+	<sql id="join">
+		FROM CYL_KAIT_TRUBL_MDAT_MST M
+						  INNER JOIN CYL_KAIT_TRUBL_MDAT_DTL dtl 
+						    ON M.TRUBL_MDAT_NO = dtl.TRUBL_MDAT_NO 
+						  INNER JOIN CYL_CMM_DB_USE_MAPNG mp 
+						     ON M.TRUBL_MDAT_NO = mp.MAPNG_KEY  
+						    AND mp.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST' 
+						    AND mp.USE_YN = 'Y'
+						  INNER JOIN ( SELECT TRUBL_MDAT_NO, GROUP_CONCAT(NM SEPARATOR ',') AS P_NM_LIST FROM CYL_KAIT_ADD_APPLCNT_INFO GROUP BY TRUBL_MDAT_NO) ada 
+						     ON dtl.TRUBL_MDAT_NO = ada.TRUBL_MDAT_NO
+	</sql>
+	
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+         /* CvplProcess.list : 접수/배분*/
+        <include refid="CylCmm.prefixPagination" />
+				SELECT M.TRUBL_MDAT_NO
+					 ,M.TRUBL_MDAT_SE
+					 ,M.NM
+					 ,M.BRTHDY
+					 ,M.CTTPC
+					 ,M.EMAIL
+					 ,M.ZIP
+					 ,M.ADRES
+					 ,M.DETAIL_ADRES
+					 ,M.P_NM
+					 ,M.P_URL
+					 ,M.P_CTTPC
+					 ,M.P_EMAIL
+					 ,M.P_ZIP
+					 ,M.P_ADRES
+					 ,M.P_DETAIL_ADRES
+					 ,M.STTUS
+					 ,ada.P_NM_LIST
+					 ,DATE_FORMAT(M.TREDE, '%Y-%m-%d') AS TREDE
+					 ,M.CHARGER_ID
+					 ,M.REQST_REASON
+					 ,M.DEMAND_MATTER
+					 ,dtl.NM               AS S_NM
+					 ,dtl.BRTHDY           AS S_BRTHDY
+					 ,dtl.CTTPC            AS S_CTTPC
+					 ,dtl.EMAIL            AS S_EMAIL
+					 ,dtl.ZIP              AS S_ZIP
+					 ,dtl.ADRES            AS S_ADRES
+					 ,dtl.DETAIL_ADRES     AS S_DETAIL_ADRES
+					 ,dtl.RELATE           AS S_RELATE
+					 ,dtl.RELATE_RELTIV    AS S_RELATE_RELTIV
+					 ,dtl.D_NM
+					 ,dtl.D_BRTHDY
+					 ,dtl.D_CTTPC
+					 ,dtl.D_EMAIL
+					 ,dtl.D_ZIP
+					 ,dtl.D_ADRES
+					 ,dtl.D_DETAIL_ADRES
+					 ,dtl.RM
+					 ,mp.USE_YN
+					 ,mp.CRTE_USER_ID
+					 ,DATE_FORMAT(mp.CRTE_DTTM, '%Y-%m-%d') AS CRTE_DTTM
+					 ,mp.UPDT_USER_ID
+					 ,DATE_FORMAT(mp.UPDT_DTTM, '%Y-%m-%d') AS UPDT_DTTM
+					 ,(SELECT COUNT(*)
+					 	<include refid="join"/>
+					 	<include refid="incCond"/>
+					 ) AS TOT
+			<include refid="join"/>
+			<include refid="incCond"/>
+			ORDER BY M.TRUBL_MDAT_NO DESC
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+    
+</mapper>

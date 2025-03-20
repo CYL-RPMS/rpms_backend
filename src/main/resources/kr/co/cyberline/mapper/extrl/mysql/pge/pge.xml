@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Pge">
+	<select id="detail" parameterType="paramMap" resultType="paramMap">
+		SELECT A.PAGE_NO
+			   ,A.PAGE_TITLE
+			   ,A.PAGE_SUB_PARNTS
+			   ,A.PAGE_SUB_CHLDRN
+			   ,A.PAGE_CN
+		  FROM CYL_KAIT_PGE_MNG A
+		 WHERE A.PAGE_NO = #{page_no}
+    </select>
+</mapper>

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ProgramManage">
+
+    <select id="selectProgramManageList" parameterType="programManageVO" resultType="programManageVO">
+        /* ProgramManage.selectProgramManageList : 프로그램관리 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        SELECT
+            A.PRGM_ID, A.PRGM_NM_KR, A.PRGM_NM_EN, A.PRGM_CD, A.PRGM_DC, A.PRGM_URL,
+            A.PRGM_URL_CD, A.CRTE_USER_ID, A.CRTE_DTTM, A.UPDT_USER_ID, A.UPDT_DTTM,
+            COUNT(1) OVER() AS TOT
+        FROM CYL_CMM_0303_TN A
+        WHERE 1=1
+        <if test="searchKeyword != null and searchKeyword != ''">
+            AND (A.PRGM_NM_KR LIKE '%' || #{searchKeyword} || '%' OR A.PRGM_NM_EN LIKE '%' || #{searchKeyword} || '%')
+        </if>
+        <if test="condPrgmCd != null and condPrgmCd != ''">
+            AND A.PRGM_CD = #{condPrgmCd}
+        </if>
+        <if test="condPrgmUrlCd != null and condPrgmUrlCd != ''">
+            AND A.PRGM_URL_CD = #{condPrgmUrlCd}
+        </if>
+        <include refid="CylCmm.orderby" />
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+
+    <select id="selectMenuProgramList" parameterType="programManageVO" resultType="programManageVO">
+        /* ProgramManage.selectMenuProgramList : 메뉴에 대한 프로그램 목록 조회 */
+        SELECT
+            A.PRGM_ID, B.PRGM_NM_KR, B.PRGM_NM_EN, B.PRGM_CD, B.PRGM_DC, B.PRGM_URL,
+            B.CRTE_USER_ID, B.CRTE_DTTM, B.UPDT_USER_ID, B.UPDT_DTTM, COUNT(1) OVER() AS TOT
+        FROM CYL_CMM_0304_TN A
+        INNER JOIN CYL_CMM_0303_TN B ON A.PRGM_ID = B.PRGM_ID
+        WHERE 1=1 AND A.MENU_ID = #{menu_id}
+        ORDER BY B.PRGM_CD ASC
+    </select>
+
+    <select id="selectProgramManageDetail" parameterType="programManageVO" resultType="programManageVO">
+        /* ProgramManage.selectProgramManageDetail : 프로그램관리 상세 조회 */
+        SELECT
+            A.PRGM_ID, A.PRGM_NM_KR, A.PRGM_NM_EN, A.PRGM_CD, A.PRGM_DC, A.PRGM_URL,
+            A.PRGM_URL_CD, A.CRTE_USER_ID, A.CRTE_DTTM, A.UPDT_USER_ID, A.UPDT_DTTM
+        FROM CYL_CMM_0303_TN A
+        WHERE A.PRGM_ID = #{prgm_id}
+    </select>
+
+    <select id="selectAuthorMenuProgramList" parameterType="programManageVO" resultType="programManageVO">
+        /* ProgramManage.selectAuthorMenuProgramList : 권한에 대한 메뉴 프로그램 목록 조회 */
+        SELECT
+            A.MENU_ID, A.PRGM_ID, B.PRGM_NM_KR, B.PRGM_NM_EN, B.PRGM_CD, B.PRGM_DC,
+            B.PRGM_URL, B.PRGM_URL_CD, C.FNC_GRP_ID, D.FNC_GRP_NM_KR, D.FNC_GRP_NM_EN
+        FROM CYL_CMM_0304_TN A
+        INNER JOIN CYL_CMM_0303_TN B ON A.PRGM_ID = B.PRGM_ID
+        LEFT OUTER JOIN CYL_CMM_0305_TN C ON B.PRGM_ID = C.PRGM_ID AND C.AUTHOR_ID = #{author_id} AND A.MENU_ID = C.MENU_ID
+        LEFT OUTER JOIN CYL_CMM_0306_TN D ON C.FNC_GRP_ID = D.FNC_GRP_ID
+        WHERE A.MENU_ID = #{menu_id}
+        ORDER BY B.PRGM_CD ASC
+    </select>
+
+    <select id="selectUserAuthorMenuProgramList" parameterType="userVO" resultType="programManageVO">
+        /* ProgramManage.selectUserAuthorMenuProgramList : 사용자의 권한에 해당하는 메뉴의 프로그램 목록 조회 */
+        SELECT
+            DISTINCT A.MENU_ID, C.PRGM_ID, C.PRGM_NM_KR, C.PRGM_NM_EN, C.PRGM_URL, C.PRGM_URL_CD
+        FROM CYL_CMM_0301_TN A
+        INNER JOIN CYL_CMM_0304_TN B ON A.MENU_ID = B.MENU_ID
+        INNER JOIN CYL_CMM_0303_TN C ON B.PRGM_ID = C.PRGM_ID
+        WHERE 1=1
+        <if test="user_id != null and user_id != ''">
+            AND EXISTS (
+                SELECT
+                    AUTHOR_ID
+                FROM CYL_CMM_0101_TN
+            WHERE USER_ID = #{user_id} AND AUTHOR_ID = A.AUTHOR_ID
+            )
+        </if>
+        <if test="author_id != null and author_id != ''">
+            AND A.AUTHOR_ID = #{author_id}
+        </if>
+    </select>
+
+    <insert id="insertProgramManage" parameterType="programManageVO">
+        /* ProgramManage.insertProgramManage : 프로그램관리 등록 */
+        INSERT INTO CYL_CMM_0303_TN(
+            PRGM_ID, PRGM_NM_KR, PRGM_NM_EN, PRGM_CD, PRGM_DC,
+            PRGM_URL, PRGM_URL_CD, CRTE_USER_ID, CRTE_DTTM
+        ) VALUES (
+            #{prgm_id}, #{prgm_nm_kr}, #{prgm_nm_en}, #{prgm_cd}, #{prgm_dc},
+            #{prgm_url}, #{prgm_url_cd}, #{crte_user_id}, SYSDATE
+        )
+    </insert>
+
+    <insert id="insertProgramAuthorRelate" parameterType="programManageVO">
+        /* ProgramManage.insertProgramAuthorRelate : 프로그램권한 관계 등록 */
+        INSERT INTO CYL_CMM_0305_TN(
+            PRGM_ID, AUTHOR_ID, MENU_ID, FNC_GRP_ID
+        ) VALUES (
+            #{prgm_id}, #{author_id}, #{menu_id}, #{fnc_grp_id}
+        )
+    </insert>
+
+    <update id="updateProgramManage" parameterType="programManageVO">
+        /* ProgramManage.updateProgramManage : 프로그램관리 수정 */
+        UPDATE CYL_CMM_0303_TN SET
+              PRGM_NM_KR    = #{prgm_nm_kr}
+            , PRGM_NM_EN    = #{prgm_nm_en}
+            , PRGM_CD       = #{prgm_cd}
+            , PRGM_DC       = #{prgm_dc}
+            , PRGM_URL      = #{prgm_url}
+            , PRGM_URL_CD   = #{prgm_url_cd}
+            , UPDT_USER_ID  = #{updt_user_id}
+            , UPDT_DTTM     = SYSDATE
+        WHERE PRGM_ID = #{prgm_id}
+    </update>
+
+    <delete id="deleteProgramManage" parameterType="programManageVO">
+        /* ProgramManage.deleteProgramManage : 프로그램관리 삭제 */
+        DELETE FROM CYL_CMM_0303_TN WHERE PRGM_ID = #{prgm_id}
+    </delete>
+
+    <delete id="deleteProgramAuthorRelate" parameterType="programManageVO">
+        /* ProgramManage.deleteProgramAuthorRelate : 권한에 대한 프로그램 관계 전체 삭제 */
+        DELETE FROM CYL_CMM_0305_TN WHERE
+        <if test="author_id != null and author_id != ''">
+            author_id = #{author_id}
+        </if>
+        <if test="prgm_id != null and prgm_id != ''">
+            prgm_id = #{prgm_id}
+        </if>
+    </delete>
+
+</mapper>

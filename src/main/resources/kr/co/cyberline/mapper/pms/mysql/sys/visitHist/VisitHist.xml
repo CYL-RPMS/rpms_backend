@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--[통신분쟁]2021-05-11 / Kait-6 / by ihpark / 홈페이지 방문자 통계-->
+<mapper namespace="VisitHist">
+
+    <insert id="visitHistInsert" parameterType="visitVO">
+        <selectKey order="BEFORE" keyProperty="visit_no" resultType="String">
+            SELECT LPAD(ifnull(MAX(visit_no) , '0')+1, 30, '0') FROM cyl_kait_visit
+        </selectKey>
+        INSERT INTO cyl_kait_visit
+        VALUES( #{visit_no}, #{visit_ip}, #{visit_refer}, #{visit_agent}, now())
+    </insert>
+
+    <select id="visitStatMain" parameterType="paramMap" resultType="paramMap">
+        select
+               count('x') as todayTotal,
+               date_format(now(),'%Y-%m-%d') as today,
+               (select count('x') from cyl_kait_visit ckv) as total
+        from cyl_kait_visit ckv
+        where 1=1
+        and ckv.visit_time >= date_format(now(),'%Y-%m-%d') ;
+    </select>
+
+</mapper>

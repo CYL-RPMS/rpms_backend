@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Common">
+    <resultMap id="tableMap" type="commonVO">
+        <result property="table_name"     	 		column="TABLE_NAME" />
+        <result property="comments"     	 		column="COMMENTS" />
+        <result property="table_name_co"     	 	column="TABLE_NAME_CO" />
+        <collection property="list"             	column="{table_name=TABLE_NAME}" select="selectCol"/>
+    </resultMap>
+
+    <select id="selectHierCodeList" parameterType="commonVO" resultType="commonVO">
+        /* Common.selectHierCodeList : 계층코드 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        <![CDATA[
+        SELECT A.*,
+                (SELECT COUNT(*)
+                   FROM (
+                        SELECT  GRP_ID, CODE, CODE_NM,
+                                SUBSTR(SYS_CONNECT_BY_PATH(CODE_NM, ' > '), 4) CODE_DC, USE_AT, CODE_SN,
+                                UPR_CODE, CRTE_USER_ID, CRTE_DTTM,
+                                UPDT_USER_ID, UPDT_DTTM, LEVEL LVL
+                          FROM CYL_CMM_0004_TC
+                        WHERE GRP_ID = #{grp_id}
+                        START WITH UPR_CODE = '0'
+                        CONNECT BY PRIOR CODE = UPR_CODE
+                        ORDER SIBLINGS BY CODE_SN
+                      ) A
+                    ]]>
+                    <if test="cond_code_nm != null and cond_code_nm != ''">
+                        WHERE INSTR(UPPER(REPLACE(CODE_NM, ' ', '')), UPPER(REPLACE(#{cond_code_nm}, ' ', ''))) > 0
+                    </if>
+                ) AS TOT
+        <![CDATA[
+          FROM (
+            SELECT  GRP_ID, CODE, CODE_NM,
+                    SUBSTR(SYS_CONNECT_BY_PATH(CODE_NM, ' > '), 4) CODE_DC, USE_AT, CODE_SN,
+                    UPR_CODE, CRTE_USER_ID, CRTE_DTTM,
+                    UPDT_USER_ID, UPDT_DTTM, LEVEL LVL
+              FROM CYL_CMM_0004_TC
+            WHERE GRP_ID = #{grp_id}
+            START WITH UPR_CODE = '0'
+            CONNECT BY PRIOR CODE = UPR_CODE
+            ORDER SIBLINGS BY CODE_SN
+          ) A
+        ]]>
+        <if test="cond_code_nm != null and cond_code_nm != ''">
+            WHERE INSTR(UPPER(REPLACE(CODE_NM, ' ', '')), UPPER(REPLACE(#{cond_code_nm}, ' ', ''))) > 0
+        </if>
+        <include refid="CylCmm.orderby" />
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+
+    <select id="selectTab" parameterType="commonVO" resultMap="tableMap">
+        SELECT TABLE_NAME, TABLE_COMMENT TABLE_NAME_CO FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_TYPE = 'BASE TABLE'
+        AND TABLE_SCHEMA = ''
+        ORDER BY TABLE_NAME
+    </select>
+
+    <select id="selectCol" parameterType="commonVO" resultType="paramMap">
+        SELECT TABLE_NAME, TABLE_NAME_CO, COLUMN_ID, COLUMN_NAME, COLUMN_NAME_CO, DATA_TYPE, NULLABLE , COL_PK, FK,'' COL_DEFAULT
+        FROM
+        (
+        SELECT A.TABLE_NAME, A.TABLE_COMMENT TABLE_NAME_CO, B.ORDINAL_POSITION COLUMN_ID, B.COLUMN_NAME, B.COLUMN_COMMENT COLUMN_NAME_CO, B.COLUMN_TYPE DATA_TYPE,
+               B.IS_NULLABLE NULLABLE, IF(B.COLUMN_KEY = 'PRI', B.COLUMN_KEY, '') COL_PK, '' FK
+        FROM INFORMATION_SCHEMA.TABLES A
+        INNER JOIN INFORMATION_SCHEMA.COLUMNS B
+        ON A.TABLE_NAME = B.TABLE_NAME
+        AND A.TABLE_SCHEMA = B.TABLE_SCHEMA
+        WHERE A.TABLE_SCHEMA = ''
+        ) A
+        WHERE TABLE_NAME = #{table_name}
+        ORDER BY TABLE_NAME, COLUMN_ID
+    </select>
+
+	<sql id="deptIncCond">
+		WHERE A.USE_YN = 'Y'
+		  AND A.DEPT_SEQ NOT IN (1,719)
+		 <if test="pop_dept_nm != null and pop_dept_nm != ''">
+		  AND A.DEPT_NM LIKE CONCAT('%',#{pop_dept_nm},'%')
+		 </if>
+	</sql>
+	<select id="comm_pop_dept" parameterType="map" resultType="map">
+		<include refid="CylCmm.prefixPagination" />
+		SELECT A.DEPT_SEQ
+			   ,A.UPPER_DEPT_SEQ
+			   ,A.DEPT_NM
+			   ,A.SN
+			   ,F_DEPT_FULL_NM(A.DEPT_SEQ) AS DEPT_FULL_NM
+			   ,(SELECT COUNT(1) 
+			   	   FROM CYL_CMM_DEPT A 
+			   	<include refid="deptIncCond"/>) AS TOT
+		  FROM CYL_CMM_DEPT A
+		<include refid="deptIncCond"/>
+		 ORDER BY A.UPPER_DEPT_SEQ ASC,A.DEPT_SEQ ASC,SN ASC
+        <include refid="CylCmm.suffixPagination" />
+	</select>
+	
+	<sql id="userIncCond">
+		WHERE A.LOGIN_ID NOT IN ('admin')
+		  AND A.HFFC_AT = '3001003'
+		 <if test="pop_dept_seq != null and pop_dept_seq != ''">
+		  AND A.DEPT_SEQ = #{pop_dept_seq}
+		 </if>
+		 <if test="pop_user_nm != null and pop_user_nm != ''">
+		  AND A.USER_NM LIKE CONCAT('%',#{pop_user_nm},'%')
+		 </if>
+	</sql>
+	<select id="comm_pop_user" parameterType="map" resultType="map">
+		<include refid="CylCmm.prefixPagination" />
+		SELECT A.USER_ID
+		       ,A.LOGIN_ID
+		       ,A.USER_NM
+		       ,A.DEPT_SEQ
+		       ,F_DEPT_NM(A.DEPT_SEQ) AS DEPT_NM
+			   ,A.OFCPS
+			   ,F_COMM_CODE_NM('CYLCMM004',A.OFCPS) AS OFCPS_NM
+			   ,A.CLSF
+               ,F_COMM_CODE_NM('CYLCMM003',A.CLSF) AS CLSF_NM
+			   ,A.JSSFC
+               ,F_COMM_CODE_NM('CYLCMM002',A.JSSFC) AS JSSFC_NM
+			   ,A.RSPOFC
+               ,F_COMM_CODE_NM('CYLCMM005',A.RSPOFC) AS RSPOFC_NM
+			   ,(SELECT COUNT(1)
+			   	   FROM CYL_CMM_0100_TN A
+			   	<include refid="userIncCond"/>) AS TOT
+		  FROM CYL_CMM_0100_TN A 
+		<include refid="userIncCond"/>
+		 <!-- ORDER BY A.UPPER_DEPT_SEQ ASC,A.DEPT_SEQ ASC,SN ASC -->
+        <include refid="CylCmm.suffixPagination" />
+	</select>
+	
+	<select id="deptList" parameterType="map" resultType="map">
+        SELECT A.DEPT_SEQ
+               ,A.DEPT_NM
+          FROM CYL_CMM_DEPT A
+         WHERE A.DEPT_SEQ NOT IN (1,719) 
+         ORDER BY A.UPPER_DEPT_SEQ ASC,A.DEPT_SEQ ASC,SN ASC
+    </select>
+	
+	<update id="delete" parameterType="map">
+		UPDATE CYL_CMM_DB_USE_MAPNG
+		   SET USE_YN = 'N'
+		     , UPDT_USER_ID = #{login_user_id}
+		     , UPDT_DTTM    = current_timestamp()
+		 WHERE MAPNG_KEY = #{MAPNG_KEY}
+		   AND MAPNG_TABLE = #{MAPNG_TABLE}
+	</update>
+	
+	<select id="commExcelMstInfo" parameterType="map" resultType="excelMVO">
+		SELECT A.PROG_ID
+			   ,A.PROG_TITLE_NM
+			   ,A.PROG_SHEET_NM
+			   ,A.NAMESPACE
+			   ,A.QUERY_ID
+		  FROM CYL_CMM_EXCEL_FILE A
+		 WHERE A.PROG_ID = #{prog_id}
+	</select>
+	
+	<select id="commExcelDtlInfo" parameterType="map" resultType="excelDVO">
+		SELECT A.PROG_ID
+			   ,A.ORDR
+			   ,A.COLUMN_EN
+			   ,A.COLUMN_KR
+			   ,A.FORMAT_TY
+			   ,A.FORMAT_ETC
+		  FROM CYL_CMM_EXCEL_FILE_DETAIL A
+		 WHERE A.PROG_ID = #{prog_id}
+	</select>
+	
+	<select id="commPssrpTaskPd" parameterType="map" resultType="map">
+		SELECT A.DLBRT_NO
+			   ,A.PSSRP_NO
+			   ,C.BGNDE
+			   ,C.ENDDE
+			   ,NOW() AS NOWDE
+		       ,IFNULL(CASE WHEN DATE(NOW()) BETWEEN DATE(C.BGNDE) AND DATE(C.ENDDE) THEN 'Y' END,'N') AS PD_STTUS
+		  FROM cyl_pms_dlbrt_reqst A INNER JOIN CYL_PMS_PSSRP B
+		                         	 ON A.PSSRP_NO = B.PSSRP_NO
+		                         	 INNER JOIN cyl_pms_pssrp_task C
+		                             ON A.PSSRP_NO = C.PSSRP_NO 
+		                             AND C.PSSRP_TASK_PLAN_SN = #{SN}
+		 WHERE A.DLBRT_NO = #{DLBRT_NO}
+	</select>
+</mapper>

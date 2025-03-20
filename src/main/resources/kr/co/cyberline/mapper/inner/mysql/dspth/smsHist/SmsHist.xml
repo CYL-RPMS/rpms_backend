@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--[통신분쟁]2022-01-04 / Kait-80 / by ihpark / SMS 발송이력 쿼리 수정 -> 서브쿼리 조인으로 변경-->
+<mapper namespace="SmsHist">
+ 	<sql id="incCond">
+		 WHERE 'Y' = F_RET_USE_YN(A.TRUBL_MDAT_NO,'CYL_KAIT_TRUBL_MDAT_MST')
+		 <if test="condNm != null and condNm != ''">
+		  AND A.NM LIKE CONCAT('%',#{condNm},'%')
+		</if>
+		<if test="condP_nm != null and condP_nm != ''">
+		  AND ADA.P_NM_LIST LIKE CONCAT('%',#{condP_nm},'%')
+		</if>
+		<if test="condRcept_dt != null and condRcept_dt != ''">
+		  AND EXISTS (
+			  SELECT 'X'
+			    FROM CYL_CMM_DB_USE_MAPNG
+			   WHERE MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+				 AND MAPNG_KEY = A.TRUBL_MDAT_NO
+                 AND DATE_FORMAT(CRTE_DTTM, '%Y-%m-%d') BETWEEN #{condRcept_st_dt} and #{condRcept_end_dt} 
+			  )
+		</if>
+		<if test="condTrubl_mdat_no != null and condTrubl_mdat_no != ''">
+		  AND A.TRUBL_MDAT_NO LIKE CONCAT('%',#{condTrubl_mdat_no},'%')
+		</if>    
+	</sql>
+
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+      <include refid="CylCmm.prefixPagination" />
+		SELECT A.TRUBL_MDAT_NO
+			  ,A.STTUS
+			  ,A.DM_TY_L
+			  ,A.DM_TY_M
+			  ,A.DM_TY_S
+			  ,F_COMM_SCLSRT_CODE_NM('DM_TY',A.DM_TY_L) AS DM_TY_L_NM
+		      ,F_COMM_SCLSRT_CODE_NM('DM_TY',A.DM_TY_M) AS DM_TY_M_NM
+		      ,F_COMM_SCLSRT_CODE_NM('DM_TY',A.DM_TY_S) AS DM_TY_S_NM
+			  ,A.NM
+			  ,ADA.P_NM_LIST AS P_NM
+			  ,DATE_FORMAT(B.CRTE_DTTM, '%Y-%m-%d') AS REQ_DT
+			  ,DATE_FORMAT(B.UPDT_DTTM, '%Y-%m-%d') AS RCEPT_DT
+		      ,DATE_FORMAT(A.TREDE, '%Y-%m-%d') AS TREDE
+			  ,F_COMM_USER_NM(A.CHARGER_ID) AS CHARGER_NM
+			  ,SMS.CNT AS SMS_TOT
+			  ,(SELECT COUNT(*) FROM CYL_KAIT_TRUBL_MDAT_MST A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+											   ON A.TRUBL_MDAT_NO = B.MAPNG_KEY
+											  AND B.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+											  AND B.USE_YN = 'Y'
+											  INNER JOIN (SELECT TRUBL_MDAT_NO
+															  , GROUP_CONCAT(BSNM.BSNM_NM SEPARATOR ',') AS P_NM_LIST
+															FROM CYL_KAIT_ADD_APPLCNT_INFO AINFO INNER JOIN CYL_KAIT_BSNM BSNM
+																								 ON BSNM.BSNM_CD = AINFO.BSNM_CD
+														  GROUP BY TRUBL_MDAT_NO) ADA
+											  ON A.TRUBL_MDAT_NO = ADA.TRUBL_MDAT_NO
+												INNER JOIN (
+													SELECT A.TRUBL_MDAT_NO, COUNT('X') AS CNT
+													FROM CYL_KAIT_TRUBL_MDAT_MST A
+													INNER JOIN CYL_CMM_SMS C
+													ON A.TRUBL_MDAT_NO = C.MAPNG_KEY
+													GROUP BY A.TRUBL_MDAT_NO
+												 ) SMS ON A.TRUBL_MDAT_NO = SMS.TRUBL_MDAT_NO
+											  <include refid="incCond"/>
+											  ) TOT
+		  FROM CYL_KAIT_TRUBL_MDAT_MST A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+											   ON A.TRUBL_MDAT_NO = B.MAPNG_KEY
+											  AND B.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST'
+											  AND B.USE_YN = 'Y'
+										 INNER JOIN (SELECT TRUBL_MDAT_NO
+														  , GROUP_CONCAT(BSNM.BSNM_NM SEPARATOR ',') AS P_NM_LIST
+													   FROM CYL_KAIT_ADD_APPLCNT_INFO AINFO INNER JOIN CYL_KAIT_BSNM BSNM
+																							ON BSNM.BSNM_CD = AINFO.BSNM_CD
+													 GROUP BY TRUBL_MDAT_NO) ADA
+										 ON A.TRUBL_MDAT_NO = ADA.TRUBL_MDAT_NO
+										INNER JOIN (
+											SELECT A.TRUBL_MDAT_NO, COUNT('X') AS CNT
+											FROM CYL_KAIT_TRUBL_MDAT_MST A
+											INNER JOIN CYL_CMM_SMS C
+											ON A.TRUBL_MDAT_NO = C.MAPNG_KEY
+											GROUP BY A.TRUBL_MDAT_NO
+										 ) SMS ON A.TRUBL_MDAT_NO = SMS.TRUBL_MDAT_NO
+           	<include refid="incCond"/>
+		ORDER BY A.TRUBL_MDAT_NO DESC 
+  	 <include refid="CylCmm.suffixPagination" />
+    </select>
+    
+    <select id="view" parameterType="paramMap" resultType="paramMap">	
+	     SELECT A.SMS_NO
+			  ,A.SMS_SE
+		  	  ,A.MAPNG_REFRN
+		  	  ,A.SMS_CN
+		  	  ,CONCAT(A.DSPTCH_F,'-',A.DSPTCH_M,'-',A.DSPTCH_L) AS DSPTCH
+			  ,CONCAT(A.RECPTN_F,'-',A.RECPTN_M,'-',A.RECPTN_L) AS RECPTN
+			  ,A.TRNSMIS_YN
+		      ,DATE_FORMAT(A.SNDNG_DT, '%Y-%m-%d %T') AS SNDNG_DT
+		      ,A.ERROR_CD
+		  FROM CYL_CMM_SMS A
+		 WHERE A.MAPNG_KEY = #{trubl_mdat_no}
+	  ORDER BY A.SMS_NO DESC
+    </select>
+    <!-- [통신분쟁]2021-05-04 / Kait-3 / by ihpark / 문자발송 이력 조회 기능 구현 -페이징-->
+	<select id="view_paging" parameterType="paramMap" resultType="paramMap">
+		<include refid="CylCmm.prefixPagination" />
+		SELECT A.SMS_NO
+				,A.SMS_SE
+				,A.MAPNG_REFRN
+				,A.SMS_CN
+				,CONCAT(A.DSPTCH_F,'-',A.DSPTCH_M,'-',A.DSPTCH_L) AS DSPTCH
+				,CONCAT(A.RECPTN_F,'-',A.RECPTN_M,'-',A.RECPTN_L) AS RECPTN
+				,A.TRNSMIS_YN
+				,DATE_FORMAT(A.SNDNG_DT, '%Y-%m-%d %T') AS SNDNG_DT
+				,A.ERROR_CD
+				,(
+					SELECT count('x')
+					FROM CYL_CMM_SMS A
+					WHERE A.MAPNG_KEY = #{trubl_mdat_no}
+				) as TOT
+		FROM CYL_CMM_SMS A
+		WHERE A.MAPNG_KEY = #{trubl_mdat_no}
+		ORDER BY A.SMS_NO DESC
+		<include refid="CylCmm.suffixPagination" />
+	</select>
+    
+    <select id="smsCn" parameterType="paramMap" resultType="paramMap">	
+	     SELECT A.SMS_CN
+		  FROM CYL_CMM_SMS A
+		 WHERE A.SMS_NO = #{sms_no}
+    </select>
+</mapper>

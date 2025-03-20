@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--[통신분쟁]2022-01-04 / Kait-80 / by ihpark / SMS 발송이력 쿼리 수정 -> 서브쿼리 조인으로 변경-->
+<mapper namespace="SmsSchdul">
+ 	<sql id="incCond">
+		 WHERE 'Y' = F_RET_USE_YN(A.MAPNG_KEY,'CYL_KAIT_TRUBL_MDAT_MST')
+		<if test="condTrubl_mdat_no != null and condTrubl_mdat_no != ''">
+		  AND A.MAPNG_KEY LIKE CONCAT('%',#{condTrubl_mdat_no},'%')
+		</if>    
+		<if test="cond_sndng != null and cond_sndng != ''">
+		  AND A.SNDNG_YN = #{cond_sndng}
+		</if>    
+	</sql>
+
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+      <include refid="CylCmm.prefixPagination" />
+		     SELECT IDX
+		          , F_COMM_CODE_NM('CYL029',SMS_SE) AS SMS_SE
+		          , MAPNG_KEY
+		          , F_COMM_CODE_NM('CYL002',MAPNG_REFRN) AS MAPNG_REFRN
+		          , SMS_CN
+		          , CONCAT( DSPTCH_F ,'-', DSPTCH_M ,'-' , DSPTCH_L ) AS DSPTCH
+		          , CONCAT( RECPTN_F ,'-' , RECPTN_M ,'-' , RECPTN_L ) AS RECPTN
+		          , SNDNG_YN 
+		          , F_COMM_CODE_NM('CYL041',SNDNG_YN) AS SNDNG 
+		          , DATE_FORMAT(SNDNG_DT , '%Y-%m-%d %H:%m') AS SNDNG_DT
+		          , TREDE
+		          , (SELECT COUNT(1) FROM CYL_CMM_SMS_SCHDUL A 
+		             <include refid="incCond"/> ) AS TOT
+			FROM CYL_CMM_SMS_SCHDUL A 
+           	<include refid="incCond"/>
+		ORDER BY  MAPNG_KEY DESC ,SNDNG_YN DESC
+  	 <include refid="CylCmm.suffixPagination" />
+    </select>
+    
+    
+    <update id="updateSndngCancel" parameterType="paramMap">
+    		UPDATE CYL_CMM_SMS_SCHDUL
+    		   SET SNDNG_YN = 'C'
+    		      ,SNDNG_DT = NOW()
+    		 WHERE IDX IN <foreach collection="idx_list" item="vo" open="(" separator="," close=")"> #{vo.idx} </foreach>;
+    </update>
+</mapper>

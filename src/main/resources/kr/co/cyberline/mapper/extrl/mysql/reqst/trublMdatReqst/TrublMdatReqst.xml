@@ -1,0 +1,532 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="TrublMdatReqst">
+
+ 	<insert id="create" parameterType="paramMap">
+	    	<selectKey order="BEFORE" keyProperty="trubl_mdat_no" resultType="String">
+				SELECT F_CREATE_TRUBL_MDAT_NO() AS trubl_mdat_no;
+			</selectKey>
+			
+			INSERT INTO 
+				CYL_KAIT_TRUBL_MDAT_MST (
+					TRUBL_MDAT_NO
+					,TRUBL_MDAT_SE
+					,INOUT_SE
+					,NM
+					,BRTHDY
+					,CTTPC
+					,EMAIL
+					,ZIP
+					,ADRES
+					,DETAIL_ADRES
+					,P_NM
+					,P_URL
+					,P_CTTPC
+					,P_EMAIL
+					,P_ZIP
+					,P_ADRES
+					,P_DETAIL_ADRES
+					,TREDE
+					,CHARGER_ID
+					,STTUS
+					,REQST_REASON
+					,DEMAND_MATTER
+					<if test="demand_matter_item_list != null and demand_matter_item_list != ''">
+					,DEMAND_MATTER_ITEM
+					</if>
+					<if test="login_user_ci != null and login_user_ci != ''">
+					,CI
+					</if>
+					<if test="login_user_ci != null and login_user_ci != ''">
+					,D_CI
+					</if>
+					,BSNM_CD
+					,BIZRNO
+					,TRUBL_KEY
+					,LOGIN_DEVICE
+				) VALUES (
+					#{trubl_mdat_no}
+					,'INDVDL'
+					,'E'
+					,#{nm}
+					,#{brthdy}
+					,#{cttpc}
+					,#{email}
+					,#{zip}
+					,#{adres}
+					,#{detail_adres}
+					,#{p_nm}
+					,#{p_url}
+					,#{p_cttpc}
+					,#{p_email}
+					,#{p_zip}
+					,#{p_adres}
+					,#{p_detail_adres}
+					,#{trede}
+					,F_GET_CHARGER_ID(#{trubl_mdat_no})
+					,'TM001' 
+					,#{reqst_reason}
+					,#{demand_matter}
+					<if test="demand_matter_item_list != null and demand_matter_item_list != ''">
+						 ,<foreach collection="demand_matter_item_list" item="vo" index="i" open="CONCAT(" close=")" separator=",">
+						 	<if test="i == 0"> #{vo.demand_matter_item}</if>
+						 	<if test="i >= 1"> CONCAT(',' , #{vo.demand_matter_item})</if>
+						 </foreach>
+					</if>
+					<if test="login_user_ci != null and login_user_ci != ''">
+						<choose>
+							<when test="login_user_ci == 'GUEST'">
+								,NULL
+							</when>
+							<when test='se == "D"'>
+								,NULL
+							</when>
+							<otherwise>
+								,#{login_user_ci}
+							</otherwise>
+						</choose>
+					</if>
+					<if test="login_user_ci != null and login_user_ci != ''">
+						<choose>
+							<when test="login_user_ci == 'GUEST'">
+								,NULL
+							</when>
+							<when test='se == "D"'>
+								,#{login_user_ci}
+							</when>
+							<otherwise>
+								,NULL
+							</otherwise>
+						</choose>
+					</if>
+					,#{bsnm_cd}
+					,#{bizrno}
+					,#{trubl_key}
+					,#{login_device}
+				);
+					
+			INSERT INTO 
+				CYL_CMM_DB_USE_MAPNG ( 
+					MAPNG_KEY
+					, MAPNG_TABLE
+					, USE_YN
+					, CRTE_USER_ID 
+					, CRTE_DTTM
+				) VALUES (
+	    			#{trubl_mdat_no}
+	    			, 'CYL_KAIT_TRUBL_MDAT_MST'
+	    			, 'Y'
+	    			, #{login_user_id}
+	    			, NOW()
+	    		);
+			
+			INSERT INTO 
+				CYL_KAIT_TRUBL_MDAT_DTL (
+					TRUBL_MDAT_NO 
+					, NM
+					, BRTHDY
+					, CTTPC
+					, EMAIL
+					, ZIP
+					, ADRES
+					, DETAIL_ADRES
+					, RELATE
+					, RELATE_RELTIV
+					, ON_OFF_SE
+				) VALUES (
+					#{trubl_mdat_no}
+					, #{a_nm}
+					, #{a_brthdy}
+					, #{a_cttpc}
+					, #{a_email}
+					, #{a_zip}
+					, #{a_adres}
+					, #{a_detail_adres}
+					, #{relate}
+					, #{relate_reltiv}
+					, 'ON'
+				);
+			
+			<if test="sreqList != null and sreqList != ''">
+		   		<foreach separator="" item="vo" index="i" collection="sreqList">
+		   			INSERT INTO 
+		   				CYL_KAIT_ADD_APPLCNT_INFO 
+		   				(
+							TRUBL_MDAT_NO
+							,SN
+							,NM
+							,BIZRNO
+							,URL
+							,CTTPC
+							,EMAIL
+							,ZIP
+							,ADRES
+							,DETAIL_ADRES
+							,BSNM_CD
+						) VALUES (
+							#{trubl_mdat_no}
+							,(SELECT IFNULL(MAX(SN)+1,1)AS SN FROM CYL_KAIT_ADD_APPLCNT_INFO B)
+						    ,#{vo.nm}
+						    ,#{vo.bizrno}
+						    ,#{vo.url}
+						    ,#{vo.cttpc}
+						    ,#{vo.email}
+						    ,#{vo.zip}
+						    ,#{vo.adres}
+						    ,#{vo.detail_adres}
+						    ,#{vo.bsnm_cd}
+					    );
+		   		</foreach>
+	   		</if>
+	   		
+	   		<if test="indiv_file_list != null and indiv_file_list != ''">
+	   			<foreach separator="" item="vo" index="i" collection="indiv_file_list">
+				INSERT INTO
+					CYL_CMM_FILE_MAPNG (
+						MAPNG_KEY
+						,MAPNG_TABLE
+						,ATCH_FILE_ID
+						,COLUNM_NM
+						,SN
+						,CRTE_USER_ID
+						,CRTE_DTTM
+					) VALUES (
+						#{trubl_mdat_no}
+						,'CYL_KAIT_TRUBL_MDAT_MST'
+						,#{vo.ATCH_FILE_KEY}
+						,#{vo.COLUNM_NM}
+						,1
+						,#{login_user_id}
+						,current_timestamp()
+					); 
+				</foreach>
+			</if>
+		/* [통신분쟁]2021-04-29 / Kait-1 / by ihpark / 외부>분쟁조정 신청>대리인 신청 시 동의체크 기능, 가족관계 또는 재직증명서 첨부 기능 구현 */
+		<if test="agent_file_list != null and agent_file_list != ''">
+			<foreach separator="" item="vo" index="i" collection="agent_file_list">
+				INSERT INTO
+				CYL_CMM_FILE_MAPNG (
+				MAPNG_KEY
+				,MAPNG_TABLE
+				,ATCH_FILE_ID
+				,COLUNM_NM
+				,SN
+				,CRTE_USER_ID
+				,CRTE_DTTM
+				) VALUES (
+				#{trubl_mdat_no}
+				,'CYL_KAIT_TRUBL_MDAT_MST'
+				,#{vo.ATCH_FILE_KEY}
+				,#{vo.COLUNM_NM}
+				,1
+				,#{login_user_id}
+				,current_timestamp()
+				);
+			</foreach>
+		</if>
+
+			<if test="dgnss != null and dgnss != ''">
+	   			<foreach separator="" item="vo" index="i" collection="dgnss">
+				INSERT INTO
+					CYL_KAIT_SELF_DIAGNOSIS (
+						TRUBL_MDAT_NO
+						,STEP
+						,QESTN
+						,RESULT_CN
+					) VALUES (
+						#{trubl_mdat_no}
+						,#{vo.step}
+						,#{vo.qestn}
+						,#{vo.result_cn}
+					); 
+				</foreach>
+			</if>
+			
+			INSERT INTO CYL_CMM_DB_USE_MAPNG	
+			(
+				MAPNG_KEY
+				,MAPNG_TABLE
+				,USE_YN
+				,CRTE_USER_ID 
+				,CRTE_DTTM
+			) VALUES (
+				#{trubl_mdat_no}
+				,'CYL_KAIT_SELF_DIAGNOSIS'
+				,'Y'
+				,#{login_user_id}
+				,NOW()
+			);
+    </insert>
+
+	<insert id="tmprCreate" parameterType="paramMap">
+		<selectKey order="BEFORE" keyProperty="trubl_mdat_no" resultType="String">
+			SELECT F_CREATE_TRUBL_MDAT_NO() AS trubl_mdat_no;
+		</selectKey>
+
+		INSERT INTO
+		CYL_KAIT_TRUBL_MDAT_MST (
+		TRUBL_MDAT_NO
+		,TRUBL_MDAT_SE
+		,INOUT_SE
+		,NM
+		,BRTHDY
+		,CTTPC
+		,EMAIL
+		,ZIP
+		,ADRES
+		,DETAIL_ADRES
+		,P_NM
+		,P_URL
+		,P_CTTPC
+		,P_EMAIL
+		,P_ZIP
+		,P_ADRES
+		,P_DETAIL_ADRES
+		,TREDE
+		,STTUS
+		,REQST_REASON
+		,DEMAND_MATTER
+		<if test="demand_matter_item_list != null and demand_matter_item_list != ''">
+			,DEMAND_MATTER_ITEM
+		</if>
+		<if test="login_user_ci != null and login_user_ci != ''">
+			,CI
+		</if>
+		<if test="login_user_ci != null and login_user_ci != ''">
+			,D_CI
+		</if>
+		,BSNM_CD
+		,BIZRNO
+		,TRUBL_KEY
+		,LOGIN_DEVICE
+		) VALUES (
+		#{trubl_mdat_no}
+		,'INDVDL'
+		,'E'
+		,#{nm}
+		,#{brthdy}
+		,#{cttpc}
+		,#{email}
+		,#{zip}
+		,#{adres}
+		,#{detail_adres}
+		,#{p_nm}
+		,#{p_url}
+		,#{p_cttpc}
+		,#{p_email}
+		,#{p_zip}
+		,#{p_adres}
+		,#{p_detail_adres}
+		,#{trede}
+		,'TM000'
+		,#{reqst_reason}
+		,#{demand_matter}
+		<if test="demand_matter_item_list != null and demand_matter_item_list != ''">
+			,<foreach collection="demand_matter_item_list" item="vo" index="i" open="CONCAT(" close=")" separator=",">
+			<if test="i == 0"> #{vo.demand_matter_item}</if>
+			<if test="i >= 1"> CONCAT(',' , #{vo.demand_matter_item})</if>
+		</foreach>
+		</if>
+		<if test="login_user_ci != null and login_user_ci != ''">
+			<choose>
+				<when test="login_user_ci == 'GUEST'">
+					,NULL
+				</when>
+				<when test='se == "D"'>
+					,NULL
+				</when>
+				<otherwise>
+					,#{login_user_ci}
+				</otherwise>
+			</choose>
+		</if>
+		<if test="login_user_ci != null and login_user_ci != ''">
+			<choose>
+				<when test="login_user_ci == 'GUEST'">
+					,NULL
+				</when>
+				<when test='se == "D"'>
+					,#{login_user_ci}
+				</when>
+				<otherwise>
+					,NULL
+				</otherwise>
+			</choose>
+		</if>
+		,#{bsnm_cd}
+		,#{bizrno}
+		,#{trubl_key}
+		,#{login_device}
+		);
+
+		INSERT INTO
+		CYL_CMM_DB_USE_MAPNG (
+		MAPNG_KEY
+		, MAPNG_TABLE
+		, USE_YN
+		, CRTE_USER_ID
+		, CRTE_DTTM
+		) VALUES (
+		#{trubl_mdat_no}
+		, 'CYL_KAIT_TRUBL_MDAT_MST'
+		, 'Y'
+		, #{login_user_id}
+		, NOW()
+		);
+
+		INSERT INTO
+		CYL_KAIT_TRUBL_MDAT_DTL (
+		TRUBL_MDAT_NO
+		, NM
+		, BRTHDY
+		, CTTPC
+		, EMAIL
+		, ZIP
+		, ADRES
+		, DETAIL_ADRES
+		, RELATE
+		, RELATE_RELTIV
+		, ON_OFF_SE
+		) VALUES (
+		#{trubl_mdat_no}
+		, #{a_nm}
+		, #{a_brthdy}
+		, #{a_cttpc}
+		, #{a_email}
+		, #{a_zip}
+		, #{a_adres}
+		, #{a_detail_adres}
+		, #{relate}
+		, #{relate_reltiv}
+		, 'ON'
+		);
+
+		<if test="sreqList != null and sreqList != ''">
+			<foreach separator="" item="vo" index="i" collection="sreqList">
+				INSERT INTO
+				CYL_KAIT_ADD_APPLCNT_INFO
+				(
+				TRUBL_MDAT_NO
+				,SN
+				,NM
+				,BIZRNO
+				,URL
+				,CTTPC
+				,EMAIL
+				,ZIP
+				,ADRES
+				,DETAIL_ADRES
+				,BSNM_CD
+				) VALUES (
+				#{trubl_mdat_no}
+				,(SELECT IFNULL(MAX(SN)+1,1)AS SN FROM CYL_KAIT_ADD_APPLCNT_INFO B)
+				,#{vo.nm}
+				,#{vo.bizrno}
+				,#{vo.url}
+				,#{vo.cttpc}
+				,#{vo.email}
+				,#{vo.zip}
+				,#{vo.adres}
+				,#{vo.detail_adres}
+				,#{vo.bsnm_cd}
+				);
+			</foreach>
+		</if>
+
+		<if test="indiv_file_list != null and indiv_file_list != ''">
+			<foreach separator="" item="vo" index="i" collection="indiv_file_list">
+				INSERT INTO
+				CYL_CMM_FILE_MAPNG (
+				MAPNG_KEY
+				,MAPNG_TABLE
+				,ATCH_FILE_ID
+				,COLUNM_NM
+				,SN
+				,CRTE_USER_ID
+				,CRTE_DTTM
+				) VALUES (
+				#{trubl_mdat_no}
+				,'CYL_KAIT_TRUBL_MDAT_MST'
+				,#{vo.ATCH_FILE_KEY}
+				,#{vo.COLUNM_NM}
+				,1
+				,#{login_user_id}
+				,current_timestamp()
+				);
+			</foreach>
+		</if>
+		/* [통신분쟁]2021-04-29 / Kait-1 / by ihpark / 외부>분쟁조정 신청>대리인 신청 시 동의체크 기능, 가족관계 또는 재직증명서 첨부 기능 구현 */
+		<if test="agent_file_list != null and agent_file_list != ''">
+			<foreach separator="" item="vo" index="i" collection="agent_file_list">
+				INSERT INTO
+				CYL_CMM_FILE_MAPNG (
+				MAPNG_KEY
+				,MAPNG_TABLE
+				,ATCH_FILE_ID
+				,COLUNM_NM
+				,SN
+				,CRTE_USER_ID
+				,CRTE_DTTM
+				) VALUES (
+				#{trubl_mdat_no}
+				,'CYL_KAIT_TRUBL_MDAT_MST'
+				,#{vo.ATCH_FILE_KEY}
+				,#{vo.COLUNM_NM}
+				,1
+				,#{login_user_id}
+				,current_timestamp()
+				);
+			</foreach>
+		</if>
+
+		<if test="dgnss != null and dgnss != ''">
+			<foreach separator="" item="vo" index="i" collection="dgnss">
+				INSERT INTO
+				CYL_KAIT_SELF_DIAGNOSIS (
+				TRUBL_MDAT_NO
+				,STEP
+				,QESTN
+				,RESULT_CN
+				) VALUES (
+				#{trubl_mdat_no}
+				,#{vo.step}
+				,#{vo.qestn}
+				,#{vo.result_cn}
+				);
+			</foreach>
+		</if>
+
+		INSERT INTO CYL_CMM_DB_USE_MAPNG
+		(
+		MAPNG_KEY
+		,MAPNG_TABLE
+		,USE_YN
+		,CRTE_USER_ID
+		,CRTE_DTTM
+		) VALUES (
+		#{trubl_mdat_no}
+		,'CYL_KAIT_SELF_DIAGNOSIS'
+		,'Y'
+		,#{login_user_id}
+		,NOW()
+		);
+	</insert>
+    
+    <select id="bsnmList" parameterType="paramMap" resultType="paramMap">
+    	SELECT A.BSNM_CD
+			   ,A.BSNM_NM
+			   ,A.HMPG
+			   ,A.CTTPC_F
+			   ,A.CTTPC_M
+			   ,A.CTTPC_L
+			   ,A.ZIP
+			   ,A.ADRES
+			   ,A.DETAIL_ADRES
+			   ,A.BIZRNO
+			   ,A.SN
+		  FROM CYL_KAIT_BSNM A
+		  WHERE A.USE_YN = 'Y'
+		ORDER BY A.SN ASC
+    </select>
+</mapper>

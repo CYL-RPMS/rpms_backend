@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Mrg">
+ 	<sql id="incCond">
+		WHERE 'Y' = F_RET_USE_YN(M.TRUBL_MDAT_NO,'CYL_KAIT_TRUBL_MDAT_MST')
+		  AND M.TRUBL_MDAT_SE = 'MRG'
+		<if test="nm != null and nm != ''">
+		  AND M.NM like CONCAT('%', #{nm}, '%')
+		</if>
+		<if test="p_nm != null and p_nm != ''">
+		</if>
+		<if test="crte_dttm_str != null and crte_dttm_str != '' ">
+		  AND DATE_FORMAT(mp.CRTE_DTTM, '%Y-%m-%d') >= #{crte_dttm_str}
+		</if>
+		<if test=" crte_dttm_end != null and crte_dttm_end != ''">
+		  AND DATE_FORMAT(mp.CRTE_DTTM, '%Y-%m-%d') <![CDATA[<=]]> crte_dttm_end
+		</if>
+		<if test="trubl_mdat_no != null and trubl_mdat_no != ''">
+		  AND M.TRUBL_MDAT_NO like CONCAT('%', #{trubl_mdat_no}, '%')
+		</if>
+		<if test="reqst_reason != null and reqst_reason != ''">
+		  AND M.REQST_REASON like CONCAT('%', #{reqst_reason}, '%')
+		</if>
+		<if test="sttus != null and sttus != ''">
+		  AND M.STTUS = #{sttus}
+		</if>
+		<if test='sttus == null or sttus == ""'>
+ 		  AND M.STTUS IN ('TM005','TM006','TM999')
+		</if>
+	</sql>
+	
+ 	<sql id="mrgSQL">
+ 		 SELECT M.TRUBL_MDAT_NO
+				,M.TRUBL_MDAT_SE
+				,M.NM
+				,M.BRTHDY
+				,M.CTTPC
+				,M.EMAIL
+				,M.ZIP
+				,M.ADRES
+				,M.DETAIL_ADRES
+				,M.P_NM
+				,M.P_URL
+				,M.P_CTTPC
+				,M.P_EMAIL
+				,M.P_ZIP
+				,M.P_ADRES
+				,M.P_DETAIL_ADRES
+				,M.TREDE
+				,M.CHARGER_ID
+				,M.STTUS
+				,M.REQST_REASON
+				,M.DEMAND_MATTER
+				,M.DEMAND_MATTER_ITEM
+				,G.USE_YN
+				,G.CRTE_USER_ID
+				,DATE_FORMAT(G.CRTE_DTTM, '%Y-%m-%d') AS CRTE_DTTM
+				,G.UPDT_USER_ID
+				,DATE_FORMAT(G.UPDT_DTTM, '%Y-%m-%d') AS UPDT_DTTM
+				,U.USER_NM  AS CHARGER_NM
+				,M.INCDNT_DC
+				,O.D_NM
+				,O.D_BRTHDY
+				,O.D_CTTPC
+				,O.D_EMAIL
+				,O.D_ZIP
+				,O.D_ADRES
+				,O.D_DETAIL_ADRES
+				,O.D_URL
+				,O.D_RELATE
+				,O.D_RELATE_RELTIV
+				,D.ENDD
+				,D.RM
+				,D.ON_OFF_SE
+				,D.INFR_TY
+				,D.REQST_TRGET
+				,D.ED_DE
+				,D.OTHBC
+				,(SELECT COUNT(1) FROM CYL_KAIT_MRG_INCDNT  WHERE M.TRUBL_MDAT_NO = TRUBL_MDAT_NO) AS INCDNT_CNT
+			 	,(SELECT COUNT(*) FROM CYL_KAIT_TRUBL_MDAT_MST M
+												INNER JOIN CYL_CMM_DB_USE_MAPNG G 
+												   ON M.TRUBL_MDAT_NO = G.MAPNG_KEY  
+												  AND G.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST' AND G.USE_YN = 'Y'
+												INNER JOIN CYL_CMM_0100_VN U 
+												   ON M.CHARGER_ID = U.USER_ID 
+												INNER JOIN CYL_KAIT_TRUBL_MDAT_DTL D 
+												   ON M.TRUBL_MDAT_NO = D.TRUBL_MDAT_NO
+												 LEFT JOIN CYL_KAIT_ADD_APPLCNT_INFO O 
+												   ON M.TRUBL_MDAT_NO = O.TRUBL_MDAT_NO 
+				      								<include refid="incCond"/> ) AS TOT
+			FROM CYL_KAIT_TRUBL_MDAT_MST M
+									INNER JOIN CYL_CMM_DB_USE_MAPNG G 
+									   ON M.TRUBL_MDAT_NO = G.MAPNG_KEY  
+									  AND G.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST' AND G.USE_YN = 'Y'
+									INNER JOIN CYL_CMM_0100_VN U 
+									   ON M.CHARGER_ID = U.USER_ID 
+									INNER JOIN CYL_KAIT_TRUBL_MDAT_DTL D 
+									   ON M.TRUBL_MDAT_NO = D.TRUBL_MDAT_NO
+									 LEFT JOIN CYL_KAIT_ADD_APPLCNT_INFO O 
+									   ON M.TRUBL_MDAT_NO = O.TRUBL_MDAT_NO 
+	 	</sql>
+	 	
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+        <include refid="CylCmm.prefixPagination" />
+			<include refid="mrgSQL"/>
+			<include refid="incCond"/>
+			ORDER BY M.TRUBL_MDAT_NO DESC
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+    
+    
+    <select id="addApplcntlist" parameterType="paramMap" resultType="paramMap">
+    	SELECT TRUBL_MDAT_NO
+    	      ,SN
+    	      ,NM
+    	      ,BRTHDY
+    	      ,CTTPC
+    	      ,EMAIL
+    	      ,ZIP
+    	      ,ADRES
+    	      ,DETAIL_ADRES
+    	      ,URL
+    	  FROM CYL_KAIT_ADD_APPLCNT_INFO 
+     	 WHERE TRUBL_MDAT_NO = #{trubl_mdat_no}
+         ORDER BY SN DESC 
+    </select>
+    
+    <insert id="create" parameterType="paramMap">
+	    	<selectKey order="BEFORE" keyProperty="trubl_mdat_no" resultType="String">
+				SELECT F_CREATE_TRUBL_MDAT_MG_NO() AS trubl_mdat_no;
+			</selectKey>
+			
+	    	/* --------- 분쟁조정_마스터 */
+			INSERT INTO 
+				CYL_KAIT_TRUBL_MDAT_MST (
+					TRUBL_MDAT_NO
+					,TRUBL_MDAT_SE
+					,NM
+					,BRTHDY
+					,CTTPC
+					,EMAIL
+					,ZIP
+					,ADRES
+					,DETAIL_ADRES
+					,P_NM
+					,P_URL
+					,P_CTTPC
+					,P_EMAIL
+					,P_ZIP
+					,P_ADRES
+					,P_DETAIL_ADRES
+					,TREDE
+					,CHARGER_ID
+					,STTUS
+					,REQST_REASON
+					,DEMAND_MATTER
+					<if test="demand_matter_item_list != null and demand_matter_item_list != ''">
+					,DEMAND_MATTER_ITEM
+					</if>
+					,INCDNT_DC
+					,DM_TY_L
+					,DM_TY_M
+					,DM_TY_S
+					,CMIT_NO
+					,MDAT_PT
+					,BIZRNO
+					,BSNM_CD
+				) VALUES (
+					#{trubl_mdat_no}
+					,#{trubl_mdat_se}
+					,#{nm}
+					,#{brthdy}
+					,#{cttpc}
+					,#{email}
+					,#{zip}
+					,#{adres}
+					,#{detail_adres}
+					,#{p_nm}
+					,#{p_url}
+					,CONCAT(#{p_cttpc},'-', #{p_cttpc1}, '-' ,#{p_cttpc2})
+					,CASE WHEN #{p_email} IS NULL OR #{p_email} = '' THEN '' ELSE CONCAT(#{p_email},'@',#{p_email1}) END
+					,#{p_zip}
+					,#{p_adres}
+					,#{p_detail_adres}
+					,#{trede}
+					,#{charger_id}
+					,'TM005' 
+					,#{reqst_reason}
+					,#{demand_matter}
+					<if test="demand_matter_item_list != null and demand_matter_item_list != ''">
+					 ,<foreach collection="demand_matter_item_list" item="vo" index="i" open="CONCAT(" close=")" separator=",">
+					 	<if test="i == 0"> #{vo.demand_matter_item}</if>
+					 	<if test="i >= 1"> CONCAT(',' , #{vo.demand_matter_item})</if>
+					 </foreach>
+				 	</if>
+				 	,#{incdnt_dc}
+				 	,#{dm_ty_l}
+				 	,#{dm_ty_m}
+				 	,#{dm_ty_s}
+				 	,#{cmit_no}
+					,#{mdat_pt}
+					,#{bizrno}
+					,#{bsnm_cd}
+				);
+				
+			INSERT INTO 
+				CYL_CMM_DB_USE_MAPNG ( 
+	    			MAPNG_KEY
+					,MAPNG_TABLE
+					,USE_YN
+					,CRTE_USER_ID 
+					,CRTE_DTTM
+				) VALUES (
+				     #{trubl_mdat_no}
+					,'CYL_KAIT_TRUBL_MDAT_MST'
+					,'Y'
+					,#{login_user_id}
+					,NOW()
+				);
+			/* --------- 신청 */
+			INSERT INTO 
+				CYL_KAIT_TRUBL_MDAT_DTL (
+					TRUBL_MDAT_NO 
+					,NM
+					,BRTHDY
+					,CTTPC
+					,EMAIL
+					,ZIP
+					,ADRES
+					,DETAIL_ADRES
+					,RELATE
+					,RELATE_RELTIV
+					,ON_OFF_SE
+				) VALUES (
+					#{trubl_mdat_no}
+					,#{a_nm}
+					,#{a_brthdy}
+					,CASE WHEN #{a_cttpc} IS NULL OR #{a_cttpc} = '' THEN '' ELSE CONCAT(#{a_cttpc},'-', #{a_cttpc1}, '-' ,#{a_cttpc2}) END
+					,CASE WHEN #{a_email} IS NULL OR #{a_email} = '' THEN '' ELSE CONCAT(#{a_email},'@', #{a_email1}) END 
+					,#{a_zip}
+					,#{a_adres}
+					,#{a_detail_adres}
+					,#{relate}
+					,#{relate_reltiv}
+					,'OFF'
+				);
+	   		
+   			INSERT INTO 
+   				CYL_KAIT_ADD_APPLCNT_INFO (
+					TRUBL_MDAT_NO
+					,SN
+					,NM
+					,URL
+					,CTTPC
+					,EMAIL
+					,ZIP
+					,ADRES
+					,DETAIL_ADRES
+					,D_NM
+					,D_BRTHDY
+					,D_CTTPC
+					,D_EMAIL
+					,D_ZIP
+					,D_ADRES
+					,D_DETAIL_ADRES
+					,D_RELATE
+					,D_RELATE_RELTIV
+					,BIZRNO
+					,BSNM_CD
+				) VALUES (
+					#{trubl_mdat_no}
+					,(SELECT IFNULL(MAX(SN)+1 ,1)AS SN FROM CYL_KAIT_ADD_APPLCNT_INFO B)
+					,#{p_nm}
+					,#{p_url}
+					,CASE WHEN #{p_cttpc} IS NULL OR #{p_cttpc} = '' THEN '' ELSE CONCAT(#{p_cttpc},'-', #{p_cttpc1}, '-' ,#{p_cttpc2}) END
+					,CASE WHEN #{p_email} IS NULL OR #{p_email} = '' THEN '' ELSE CONCAT(#{p_email},'@',#{p_email1}) END
+					,#{p_zip}
+					,#{p_adres}
+					,#{p_detail_adres}
+					,#{d_nm}
+					,#{d_brthdy}
+					,CASE WHEN #{d_cttpc_1} IS NULL OR #{d_cttpc_1} = '' THEN '' ELSE CONCAT(#{d_cttpc_1},'-', #{d_cttpc_2}, '-' ,#{d_cttpc_3}) END
+					,CASE WHEN #{d_email_1} IS NULL OR #{d_email_2} = '' THEN '' ELSE CONCAT(#{d_email_1},'@', #{d_email_2}) END
+					,#{d_zip}
+					,#{d_adres}
+					,#{d_detail_adres}
+					,#{d_relate}
+					,#{d_relate_reltiv}
+					,#{bizrno}
+					,#{bsnm_cd}
+				);
+	   		
+			<if test="fact_file_list != null and fact_file_list != ''">
+				/* --------- 사실조사 보고서 첨부파일 */
+	   			<foreach separator="" item="vo" index="i" collection="fact_file_list">
+				INSERT INTO	
+					CYL_CMM_FILE_MAPNG (
+						MAPNG_KEY
+						,MAPNG_TABLE
+						,ATCH_FILE_ID
+						,COLUNM_NM
+						,SN
+						,CRTE_USER_ID
+						,CRTE_DTTM
+					) VALUES (
+						#{trubl_mdat_no}
+						,'CYL_KAIT_TRUBL_MDAT_MST'
+						,#{vo.ATCH_FILE_KEY}
+						,#{vo.COLUNM_NM}
+						,1
+						,#{login_user_id}
+						,NOW()
+					); 
+				</foreach>
+			</if>
+			<if test="etc_doc_file_list != null and etc_doc_file_list != ''">
+				/* ---------  기타문서 첨부파일 */
+	   			<foreach separator="" item="vo" index="i" collection="etc_doc_file_list">
+				INSERT INTO	
+					CYL_CMM_FILE_MAPNG ( 
+						MAPNG_KEY
+					 	,MAPNG_TABLE
+					 	,ATCH_FILE_ID
+					 	,COLUNM_NM
+					 	,SN
+					 	,CRTE_USER_ID
+					 	,CRTE_DTTM
+			    	) VALUES (
+						#{trubl_mdat_no}
+						,'CYL_KAIT_TRUBL_MDAT_MST'
+						,#{vo.ATCH_FILE_KEY}
+						,#{vo.COLUNM_NM}
+						,1
+						,#{login_user_id}
+						,NOW()
+			    	); 
+				</foreach>
+			</if>
+			<if test="law_file_list != null and law_file_list != ''">
+				/* ---------  기타문서 첨부파일 */
+	   			<foreach separator="" item="vo" index="i" collection="law_file_list">
+				INSERT INTO	
+					CYL_CMM_FILE_MAPNG ( 
+						MAPNG_KEY
+					 	,MAPNG_TABLE
+					 	,ATCH_FILE_ID
+					 	,COLUNM_NM
+					 	,SN
+					 	,CRTE_USER_ID
+					 	,CRTE_DTTM
+			    	) VALUES (
+						#{trubl_mdat_no}
+						,'CYL_KAIT_TRUBL_MDAT_MST'
+						,#{vo.ATCH_FILE_KEY}
+						,#{vo.COLUNM_NM}
+						,1
+						,#{login_user_id}
+						,NOW()
+			    	); 
+				</foreach>
+			</if>
+			
+			<if test="mfcmm_list != null and mfcmm_list != ''">
+		   		<foreach separator="" item="vo" index="i" collection="mfcmm_list">
+				INSERT INTO
+					CYL_KAIT_TRUBL_MDAT_EVL_MFCMM 
+					(
+						TRUBL_MDAT_NO
+						,USER_ID
+						,USER_NM
+						,CLSF
+					) VALUES (
+						#{trubl_mdat_no}
+						,#{vo.user_id}
+						,#{vo.user_nm}
+						,#{vo.clsf}
+					);
+		   		</foreach>
+	   		</if>
+    </insert>
+    
+    <select id="incdntlist" parameterType="paramMap" resultType="paramMap">
+    	/* Mrg - incdntlist : 병합사건 목록 */
+	     SELECT C.TRUBL_MDAT_NO ,B.M_TRUBL_MDAT_NO
+			,C.TRUBL_MDAT_SE
+			,C.NM
+			,C.BRTHDY
+			,C.CTTPC
+			,C.EMAIL
+			,C.ZIP
+			,C.ADRES
+			,C.DETAIL_ADRES
+			,C.P_NM
+			,C.P_URL
+			,C.P_CTTPC
+			,C.P_EMAIL
+			,C.P_ZIP
+			,C.P_ADRES
+			,C.P_DETAIL_ADRES
+			,DATE_FORMAT(C.TREDE, '%Y-%m-%d') AS TREDE
+			,C.CHARGER_ID
+			,C.STTUS
+			,C.REQST_REASON
+			,C.DEMAND_MATTER
+			,G.USE_YN
+			,G.CRTE_USER_ID
+			,DATE_FORMAT(G.CRTE_DTTM, '%Y-%m-%d') AS CRTE_DTTM
+			,G.UPDT_USER_ID
+			,DATE_FORMAT(G.UPDT_DTTM, '%Y-%m-%d') AS UPDT_DTTM
+			,U.USER_NM 
+			,@rownum:=@rownum+1 AS RNUM
+		FROM CYL_KAIT_TRUBL_MDAT_MST A
+								INNER JOIN CYL_KAIT_MRG_INCDNT B 
+								   ON B.TRUBL_MDAT_NO = A.TRUBL_MDAT_NO
+								INNER JOIN CYL_KAIT_TRUBL_MDAT_MST C 
+								   ON B.M_TRUBL_MDAT_NO = C.TRUBL_MDAT_NO
+								INNER JOIN CYL_CMM_DB_USE_MAPNG G 
+								   ON C.TRUBL_MDAT_NO = G.MAPNG_KEY  
+								  AND G.MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST' AND G.USE_YN = 'Y'
+								INNER JOIN CYL_CMM_0100_VN U ON C.CHARGER_ID = U.USER_ID 
+	   WHERE A.TRUBL_MDAT_NO = #{trubl_mdat_no}
+	     AND (@rownum:=0) = 0
+	   ORDER BY A.TRUBL_MDAT_NO DESC
+    </select>
+    
+    
+    <update id="mrgDelete" parameterType="paramMap">
+    	UPDATE CYL_CMM_DB_USE_MAPNG
+    	   SET USE_YN = 'N'
+    	   	   ,UPDT_USER_ID = #{login_user_id}
+			   ,UPDT_DTTM = NOW()
+    	 WHERE MAPNG_KEY = #{trubl_mdat_no}
+    	   AND MAPNG_TABLE = 'CYL_KAIT_TRUBL_MDAT_MST';
+    	   
+		DELETE FROM CYL_KAIT_MRG_INCDNT WHERE TRUBL_MDAT_NO = #{trubl_mdat_no}; 
+    </update>
+</mapper>

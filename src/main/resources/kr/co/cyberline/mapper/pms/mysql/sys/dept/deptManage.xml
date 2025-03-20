@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="deptManage">
+
+    <select id="selectDeptManageList" parameterType="map" resultType="map">
+        /* deptManage.selectMenuManageList : 메뉴관리 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        SELECT A.*,
+                (SELECT COUNT(*)
+                FROM CYL_CMM_DEPT A
+                WHERE 1=1
+                <if test="searchKeyword != null and searchKeyword != ''">
+                    AND ( INSTR(A.DEPT_NM, #{searchKeyword}) > 0 OR INSTR(A.DEPT_NM, #{searchKeyword}) > 0 )
+                </if>
+                )AS TOT
+        FROM (
+               SELECT A.DEPT_SEQ, A.UPPER_DEPT_SEQ, A.DEPT_NM, A.SN, A.DEPT_LVL, A.USE_YN
+				,B.DEPT_NM AS UPPER_DEPT_NM 
+				  FROM CYL_CMM_DEPT A 
+				  LEFT JOIN CYL_CMM_DEPT B ON A.UPPER_DEPT_SEQ = B.DEPT_SEQ
+        ) A
+        WHERE 1=1
+        <if test="searchKeyword != null and searchKeyword != ''">
+            AND ( INSTR(A.DEPT_NM, #{searchKeyword}) > 0 OR INSTR(A.DEPT_NM, #{searchKeyword}) > 0 )
+        </if>
+        <!--<include refid="CylCmm.orderby" />-->
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+
+
+    <select id="selectDeptManageDetail" parameterType="map" resultType="map">
+        /* deptManage.selectDeptManageDetail : 부서관리 상세 조회 */
+         SELECT A.DEPT_SEQ, A.UPPER_DEPT_SEQ, A.DEPT_NM, A.SN, A.DEPT_LVL, A.USE_YN
+				,B.DEPT_NM AS UPPER_DEPT_NM 
+				  FROM CYL_CMM_DEPT A 
+				  LEFT JOIN CYL_CMM_DEPT B ON A.UPPER_DEPT_SEQ = B.DEPT_SEQ
+				  WHERE A.DEPT_SEQ = #{dept_seq}
+    </select>
+    <select id="selectUpperDeptManageDetail" parameterType="map" resultType="map">
+        /* deptManage.selectUpperDeptManageDetail : 상세 부서 조회 */
+         SELECT A.DEPT_SEQ AS UPPER_DEPT_SEQ
+               , A.DEPT_NM AS UPPER_DEPT_NM
+               , (SELECT IFNULL(MAX(SN),0)+1 FROM CYL_CMM_DEPT WHERE UPPER_DEPT_SEQ = A.DEPT_SEQ) AS SN
+               , A.DEPT_LVL + 1 AS DEPT_LVL
+				  FROM CYL_CMM_DEPT A 
+				  WHERE A.DEPT_SEQ = #{dept_seq}
+    </select>
+
+    <insert id="insertDeptManage" parameterType="map">
+        /* deptManage.insertDeptManage : 부서관리 등록 */
+        INSERT INTO CYL_CMM_DEPT(
+        DEPT_SEQ
+        ,UPPER_DEPT_SEQ
+        ,DEPT_NM,SN,DEPT_LVL,USE_YN,
+        CRTE_USER_ID, CRTE_DTTM
+        ) VALUES (
+        (SELECT MAX(DEPT_SEQ)+1 FROM CYL_CMM_DEPT A)
+        ,#{upper_dept_seq},#{dept_nm},#{sn},#{dept_lvl}, #{use_yn},
+        #{login_user_id}, NOW()
+        )
+    </insert>
+
+
+    <update id="updateDeptManage" parameterType="map">
+        /* deptManage.updateDeptManage : 부서관리 수정 */
+        UPDATE CYL_CMM_DEPT SET
+              DEPT_NM    = #{dept_nm}
+            , SN   		 = #{sn}
+            , USE_YN     = #{use_yn}
+            
+            , UPDT_USER_ID  = #{login_user_id}
+            , UPDT_DTTM     = NOW()
+        WHERE DEPT_SEQ = #{dept_seq}
+    </update>
+
+    <delete id="deleteDeptManage" parameterType="menuManageVO">
+        /* deptManage.deleteDeptManage : 부서관리 삭제 */
+        DELETE FROM CYL_CMM_DEPT WHERE DEPT_SEQ = #{dept_seq}
+    </delete>
+
+
+</mapper>

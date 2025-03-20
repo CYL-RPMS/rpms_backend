@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="InnerNotice">
+    <!--[통신분쟁]2022-01-20 / Kait-85 / by ihpark / 게시판 조회수 수정	-->
+    <sql id="incCond">
+      WHERE 'Y' =  F_RET_USE_YN(A.NOTICE_NO,'CYL_KAIT_NOTICES')
+        <if test="searchKeyword != null and searchKeyword != ''">
+            <if test="searchType == 'SEARCH_ALL'">
+                AND (INSTR(UPPER(REPLACE(C.USER_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+                OR INSTR(UPPER(REPLACE(A.NOTICE_SJ, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0)
+            </if>
+            <if test="searchType == 'NOTICE_SJ'">
+                AND INSTR(UPPER(REPLACE(A.NOTICE_SJ, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+            </if>
+            <if test="searchType == 'USER_NM'">
+                AND INSTR(UPPER(REPLACE(C.USER_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+            </if>
+        </if>
+   </sql>
+   
+    <insert id="create" parameterType="paramMap">
+      <selectKey order="BEFORE" keyProperty="notice_no" resultType="String">
+            SELECT F_CREATE_NOTICE_NO() AS notice_no;
+      </selectKey>
+	        
+         INSERT INTO
+         	CYL_KAIT_NOTICES
+          	(
+            	NOTICE_NO
+             	,NOTICE_SJ
+          		,NOTICE_CN
+                ,NOTI_DT
+          	) VALUES (
+            	#{notice_no}          
+             	,#{notice_sj}
+             	,#{notice_cn}
+                ,DATE_FORMAT(#{noti_dt},'%Y-%m-%d %H-%i')
+          	);
+         <if test="file_list != null and file_list != ''">
+         <foreach separator="" item="vo" index="i" collection="file_list">
+         INSERT INTO
+         	CYL_CMM_FILE_MAPNG 
+         	(
+	            MAPNG_KEY
+	            ,MAPNG_TABLE
+	            ,ATCH_FILE_ID
+	            ,COLUNM_NM
+	            ,SN
+	            ,CRTE_USER_ID
+	            ,CRTE_DTTM
+         	) VALUES (
+	            #{notice_no}
+	            ,'CYL_KAIT_NOTICES'
+	            ,#{vo.ATCH_FILE_KEY}
+	            ,#{vo.FILE_COLUNM}
+	            ,'1'
+	            ,#{login_user_id}
+	            ,NOW()
+	        );
+         </foreach>
+         </if>       
+       INSERT INTO 
+          CYL_CMM_DB_USE_MAPNG   
+          (
+             MAPNG_KEY
+            ,MAPNG_TABLE
+            ,USE_YN
+            ,CRTE_USER_ID
+            ,CRTE_DTTM
+          ) VALUES (
+             #{notice_no}
+             ,'CYL_KAIT_NOTICES'
+             ,'Y'
+             ,#{login_user_id}
+             ,NOW()
+          );
+    </insert>
+   
+
+   <select id="list" parameterType="paramMap" resultType="paramMap">
+        <include refid="CylCmm.prefixPagination" />
+          SELECT A.NOTICE_NO
+                ,A.NOTICE_SJ
+                ,A.NOTICE_CN
+                ,A.NOTI_DT
+                ,A.VIEWS
+                ,DATE_FORMAT(A.NOTI_DT,'%Y-%m-%d') as NOTI_DT_YMD
+                ,DATE_FORMAT(A.NOTI_DT,'%H') as NOTI_DT_H
+                ,DATE_FORMAT(A.NOTI_DT,'%i') as NOTI_DT_I
+                ,B.CRTE_USER_ID
+                ,DATE_FORMAT(B.CRTE_DTTM,'%Y-%m-%d') AS REG_DT
+                ,C.USER_NM AS REG_NM
+                ,F_IP_RDCNT(A.NOTICE_NO ,'CYL_KAIT_NOTICES') AS NOTICE_RDCNT
+                ,(SELECT COUNT(*) 
+                     FROM CYL_KAIT_NOTICES A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+                                        ON A.NOTICE_NO = B.MAPNG_KEY
+                                        AND B.MAPNG_TABLE = 'CYL_KAIT_NOTICES'
+                                        AND B.USE_YN = 'Y'
+                                        INNER JOIN CYL_CMM_0100_TN C
+                                        ON B.CRTE_USER_ID = C.USER_ID
+                                        <include refid="incCond"/>) AS TOT
+            FROM CYL_KAIT_NOTICES A INNER JOIN CYL_CMM_DB_USE_MAPNG B 
+                                      ON A.NOTICE_NO = B.MAPNG_KEY
+                                   AND B.MAPNG_TABLE = 'CYL_KAIT_NOTICES'
+                                   AND B.USE_YN = 'Y'
+                                   INNER JOIN CYL_CMM_0100_TN C
+                                   ON B.CRTE_USER_ID = C.USER_ID    
+        <include refid="incCond"/>
+               ORDER BY A.NOTI_DT DESC
+      <include refid="CylCmm.suffixPagination" />
+    </select>
+    
+      <select id="view" parameterType="paramMap" resultType="paramMap">
+          SELECT A.NOTICE_NO
+                ,A.NOTICE_SJ
+                ,A.NOTICE_CN
+                ,A.NOTI_DT
+                ,A.VIEWS
+                ,DATE_FORMAT(A.NOTI_DT,'%Y-%m-%d') as NOTI_DT_YMD
+                ,DATE_FORMAT(A.NOTI_DT,'%H') as NOTI_DT_H
+                ,DATE_FORMAT(A.NOTI_DT,'%i') as NOTI_DT_I
+                ,F_IP_RDCNT(A.NOTICE_NO ,'CYL_KAIT_NOTICES') AS NOTICE_RDCNT
+                ,DATE_FORMAT(B.CRTE_DTTM,'%Y-%m-%d') AS REG_DT
+            ,C.USER_NM           
+           FROM CYL_KAIT_NOTICES A INNER JOIN CYL_CMM_DB_USE_MAPNG B 
+                                      ON A.NOTICE_NO = B.MAPNG_KEY
+                                     AND B.MAPNG_TABLE = 'CYL_KAIT_NOTICES'
+                                     AND B.USE_YN = 'Y'
+                                  INNER JOIN CYL_CMM_0100_TN C
+                                    ON B.CRTE_USER_ID = C.USER_ID
+          WHERE A.NOTICE_NO= #{notice_no} 
+    </select>
+    
+    <update id="modify_delete" parameterType="paramMap">
+       UPDATE CYL_CMM_DB_USE_MAPNG
+          SET UPDT_USER_ID = #{login_user_id}
+            ,UPDT_DTTM = NOW()
+            ,USE_YN = 'N'
+       WHERE MAPNG_KEY = #{notice_no}
+         AND MAPNG_TABLE = 'CYL_KAIT_NOTICES'
+    </update>
+    
+    <update id="modify" parameterType="paramMap">
+    
+         UPDATE CYL_KAIT_NOTICES
+            SET NOTICE_SJ =  #{notice_sj}
+                ,NOTICE_CN = #{notice_cn}
+                ,NOTI_DT = DATE_FORMAT(#{noti_dt},'%Y-%m-%d %H-%i')
+          WHERE NOTICE_NO = #{notice_no};
+          
+         DELETE FROM CYL_CMM_FILE_MAPNG
+         WHERE MAPNG_KEY = #{notice_no}
+        AND MAPNG_TABLE = 'CYL_KAIT_NOTICES';
+      
+       <if test="file_list != null and file_list != ''">
+            <foreach separator="" item="vo" index="i" collection="file_list">
+             INSERT INTO
+            CYL_CMM_FILE_MAPNG (
+               MAPNG_KEY
+               ,MAPNG_TABLE
+               ,ATCH_FILE_ID
+               ,COLUNM_NM
+               ,SN
+               ,CRTE_USER_ID
+               ,CRTE_DTTM
+            ) VALUES (
+               #{notice_no}
+               ,'CYL_KAIT_NOTICES'
+               ,#{vo.ATCH_FILE_KEY}
+               ,#{vo.FILE_COLUNM}
+               ,'1'
+               ,#{login_user_id}
+               ,NOW()
+            );
+            </foreach>
+      </if> 
+       
+      UPDATE CYL_CMM_DB_USE_MAPNG   
+         SET CRTE_USER_ID = #{login_user_id}
+           ,CRTE_DTTM = NOW()
+       WHERE MAPNG_KEY = #{notice_no} 
+         AND MAPNG_TABLE = 'CYL_KAIT_NOTICES';
+         
+         
+    </update>
+    
+    <select id="FileList" parameterType="paramMap" resultType="paramMap">
+      SELECT A.MAPNG_KEY
+               ,A.COLUNM_NM
+                 ,A.ATCH_FILE_ID AS FILE_ID
+             ,F_COMM_FILE_NM(A.ATCH_FILE_ID) AS FILE_NM
+         FROM CYL_CMM_FILE_MAPNG A
+        WHERE A.USE_AT = 'Y'
+            AND A.MAPNG_KEY = #{notice_no}
+            AND A.MAPNG_TABLE = 'CYL_KAIT_NOTICES'
+            AND A.COLUNM_NM LIKE 'NOTICES_%'
+          ORDER BY A.CRTE_DTTM ASC
+   </select>
+</mapper>

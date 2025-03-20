@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="pApplcntAgent">
+    <select id="view" parameterType="paramMap" resultType="paramMap">
+      SELECT O.NM
+			 ,O.D_NM
+			 ,O.D_BRTHDY
+			 ,O.D_CTTPC
+			 ,O.D_EMAIL
+			 ,O.D_ZIP
+			 ,O.D_ADRES
+			 ,O.D_DETAIL_ADRES
+			 ,O.D_URL
+			 ,O.D_RELATE
+			 ,O.D_RELATE_RELTIV
+		FROM CYL_KAIT_TRUBL_MDAT_MST M INNER JOIN CYL_KAIT_ADD_APPLCNT_INFO O 
+ 								   	   ON M.TRUBL_MDAT_NO = O.TRUBL_MDAT_NO 
+	   WHERE M.TRUBL_MDAT_NO = #{trubl_mdat_no}
+    </select>
+</mapper>

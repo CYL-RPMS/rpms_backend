@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BannerManage">
+	<sql id="incCond">
+		WHERE 'Y' =  F_RET_USE_YN(A.BN_NO,'CYL_KAIT_BANNER')
+	</sql>
+
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+        /* BannerManage.list : 배너 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        SELECT A.BN_NO
+			   ,A.BN_NM
+			   ,A.BN_ORDER
+			   ,DATE_FORMAT(A.BGNDE, '%Y-%m-%d') AS BGNDE
+			   ,DATE_FORMAT(A.ENDDE, '%Y-%m-%d') AS ENDDE
+			   ,A.NTHG_TMLMT
+			   ,A.USE_YN
+			   ,A.LINK_URL
+			   ,A.LINK_URL_SE
+			   ,F_COMM_FILE_ID(A.BN_NO,'CYL_KAIT_BANNER','ATCH_FILE_ID',1) AS ATCH_FILE_ID
+		       ,F_COMM_FILE_NM(F_COMM_FILE_ID(A.BN_NO,'CYL_KAIT_BANNER','ATCH_FILE_ID',1)) AS ATCH_FILE_ID_NM
+               ,(SELECT COUNT(*) FROM CYL_KAIT_BANNER A <include refid="incCond"/>) AS TOT
+        FROM CYL_KAIT_BANNER A
+        <include refid="incCond"/>
+        <include refid="CylCmm.orderby" />
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+
+    <select id="view" parameterType="paramMap" resultType="paramMap">
+    	SELECT A.BN_NO
+			   ,A.BN_NM
+			   ,A.BN_ORDER
+			   ,DATE_FORMAT(A.BGNDE, '%Y-%m-%d') AS BGNDE
+			   ,DATE_FORMAT(A.ENDDE, '%Y-%m-%d') AS ENDDE
+			   ,A.NTHG_TMLMT
+			   ,A.USE_YN
+			   ,A.LINK_URL
+			   ,A.LINK_URL_SE
+			   ,F_COMM_FILE_ID(A.BN_NO,'CYL_KAIT_BANNER','ATCH_FILE_ID',1) AS ATCH_FILE_ID
+		       ,F_COMM_FILE_NM(F_COMM_FILE_ID(A.BN_NO,'CYL_KAIT_BANNER','ATCH_FILE_ID',1)) AS ATCH_FILE_ID_NM
+        FROM CYL_KAIT_BANNER A
+        <include refid="incCond"/>
+         AND A.BN_NO = #{bn_no}
+    </select>
+
+    <insert id="create" parameterType="paramMap">
+    	<selectKey order="BEFORE" keyProperty="bn_no" resultType="String">
+			SELECT F_CREATE_BN_NO() AS bn_no;
+		</selectKey>
+    	INSERT INTO 
+    		CYL_KAIT_BANNER
+    		(
+    			BN_NO
+				,BN_NM
+				,BN_ORDER
+				,BGNDE
+				,ENDDE
+				,NTHG_TMLMT
+				,USE_YN
+				,LINK_URL
+				,LINK_URL_SE
+    		) VALUES (
+    			#{bn_no}
+				,#{bn_nm}
+				,#{bn_order}
+				,STR_TO_DATE(#{bgnde},'%Y-%m-%d')
+				<choose>
+					<when test="endde != null and endde  != ''">
+						,STR_TO_DATE(#{endde},'%Y-%m-%d')
+					</when>
+					<otherwise>
+						,NULL
+					</otherwise>
+				</choose>				
+				,#{nthg_tmlmt}
+				,#{use_yn}
+				,#{link_url}
+				,#{link_url_se}
+    		);
+    		
+    	INSERT INTO
+			CYL_CMM_FILE_MAPNG (
+				MAPNG_KEY
+				,MAPNG_TABLE
+				,ATCH_FILE_ID
+				,COLUNM_NM
+				,SN
+				,CRTE_USER_ID
+				,CRTE_DTTM
+			) VALUES (
+				#{bn_no}
+				,'CYL_KAIT_BANNER'
+				,#{atch_file_id}
+				,'ATCH_FILE_ID'
+				,1
+				,#{login_user_id}
+				,NOW()
+			);
+    		
+    	INSERT INTO 
+    		CYL_CMM_DB_USE_MAPNG	
+    		(
+    			MAPNG_KEY
+				,MAPNG_TABLE
+				,USE_YN
+				,CRTE_USER_ID
+				,CRTE_DTTM
+    		) VALUES (
+    			#{bn_no}
+    			,'CYL_KAIT_BANNER'
+    			,'Y'
+    			,#{login_user_id}
+    			,NOW()
+    		);
+    </insert>
+    
+    <update id="modify" parameterType="paramMap">
+    	UPDATE CYL_KAIT_BANNER
+    	   SET BN_NM = #{bn_nm}
+			   ,BN_ORDER = #{bn_order} 
+			   ,BGNDE = STR_TO_DATE(#{bgnde},'%Y-%m-%d')
+			   <choose>
+					<when test="endde != null and endde  != ''">
+						,ENDDE = STR_TO_DATE(#{endde},'%Y-%m-%d')
+					</when>
+					<otherwise>
+						,ENDDE = NULL
+					</otherwise>
+				</choose>			   
+			   ,NTHG_TMLMT = #{nthg_tmlmt}
+			   ,USE_YN = #{use_yn}
+			   ,LINK_URL = #{link_url}
+			   ,LINK_URL_SE = #{link_url_se}
+    	 WHERE BN_NO = #{bn_no};
+			
+    	UPDATE CYL_CMM_FILE_MAPNG
+    	   SET ATCH_FILE_ID = #{ATCH_FILE_ID}
+    	   	   ,UPDT_USER_ID = #{login_user_id}
+			   ,UPDT_DTTM = NOW()
+    	 WHERE MAPNG_KEY = #{bn_no}
+		   AND MAPNG_TABLE = 'CYL_KAIT_BANNER'
+		   AND COLUNM_NM = 'ATCH_FILE_ID'
+		   AND SN = 1;
+		   
+    	UPDATE CYL_CMM_DB_USE_MAPNG
+    	   SET UPDT_USER_ID = #{login_user_id}
+			   ,UPDT_DTTM = NOW()
+		 WHERE MAPNG_KEY = #{bn_no}
+		   AND MAPNG_TABLE = 'CYL_KAIT_BANNER';
+    </update>
+    
+    <update id="modify_delete" parameterType="paramMap">
+    	UPDATE CYL_CMM_DB_USE_MAPNG
+    	   SET UPDT_USER_ID = #{login_user_id}
+			   ,UPDT_DTTM = NOW()
+			   ,USE_YN = 'N'
+		 WHERE MAPNG_KEY = #{bn_no}
+		   AND MAPNG_TABLE = 'CYL_KAIT_BANNER'
+    </update>
+</mapper>

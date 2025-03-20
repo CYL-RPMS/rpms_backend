@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="stpge">
+
+	<insert id="stpge_hist" parameterType="paramMap">
+		<selectKey order="BEFORE" keyProperty="sn" resultType="String">
+			SELECT IFNULL(MAX(SN) + 1,1) AS SN
+			  FROM CYL_KAIT_TRUBL_MDAT_JOB_HIST
+			 WHERE TRUBL_MDAT_NO = #{trubl_mdat_no};
+		</selectKey>
+		
+    	INSERT INTO 
+    		CYL_KAIT_TRUBL_MDAT_JOB_HIST
+    		(
+	    		TRUBL_MDAT_NO
+	    		,SN
+	    		,STTUS
+	    		,PROCESS_SE
+	    		,SMS
+	    		,CN
+	    	) VALUES (
+	    		#{trubl_mdat_no}
+	    		,#{sn}
+	    		,(SELECT STTUS FROM CYL_KAIT_TRUBL_MDAT_MST WHERE TRUBL_MDAT_NO = #{trubl_mdat_no})
+	    		,#{process_se}
+	    		,#{sms}
+	    		,#{cn}
+	    	);
+	    	
+	    INSERT INTO
+	        CYL_CMM_DB_USE_MAPNG 
+	           (
+		          MAPNG_KEY
+		          ,MAPNG_TABLE
+		          ,CRTE_USER_ID
+		          ,CRTE_DTTM
+		      ) VALUES (
+		          CONCAT(#{trubl_mdat_no},' ',#{sn})
+		          ,'CYL_KAIT_TRUBL_MDAT_JOB_HIST'
+		          ,#{login_user_id}
+		          ,NOW()
+		      );
+	</insert>
+	<update id="stpge" parameterType="paramMap">
+		UPDATE CYL_KAIT_TRUBL_MDAT_MST 
+		   SET STPGE 			   = 'Y'
+		   	  ,STPGE_REMNDR_DAYCNT = TIMESTAMPDIFF(DAY, NOW(), TREDE)
+		      ,STPGE_DT			   = SYSDATE()
+		 WHERE TRUBL_MDAT_NO = #{trubl_mdat_no}
+	</update>
+	
+	<update id="stpgeRelis" parameterType="paramMap">
+		UPDATE CYL_KAIT_TRUBL_MDAT_MST 
+		   SET STPGE = 'N'
+			  ,TREDE = DATE_ADD(TREDE , INTERVAL (DATEDIFF(DATE_FORMAT(SYSDATE(), '%y-%m-%d'), DATE_FORMAT(STPGE_DT, '%y-%m-%d'))) DAY)
+		 WHERE TRUBL_MDAT_NO = #{trubl_mdat_no}
+	</update>
+    
+</mapper>

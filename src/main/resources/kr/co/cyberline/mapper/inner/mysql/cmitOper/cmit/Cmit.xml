@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Cmit">
+ 	<sql id="incCond">
+ 		WHERE 'Y' = F_RET_USE_YN(A.CMIT_NO,'CYL_KAIT_CMIT_MANAGE')
+		<if test="condCmitNm != null and condCmitNm != ''">
+		  AND A.CMIT_NM LIKE CONCAT('%',#{condCmitNm},'%')
+		</if>
+	</sql>
+
+    <select id="list" parameterType="paramMap" resultType="paramMap">
+        <include refid="CylCmm.prefixPagination" />
+			SELECT A.CMIT_NO
+				   ,A.CMIT_NM
+				   ,A.CMIT_DC
+				   ,DATE_FORMAT(B.CRTE_DTTM,'%Y-%m-%d') AS CRTE_DTTM
+				   ,C.USER_NM AS CRTE_USER_NM
+				   ,A.EXPSR_YN
+				   ,(
+				   SELECT COUNT(1)
+				     FROM CYL_KAIT_CMIT_MANAGE A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+												 ON A.CMIT_NO = B.MAPNG_KEY
+												 AND B.MAPNG_TABLE = 'CYL_KAIT_CMIT_MANAGE'
+												 AND B.USE_YN = 'Y'
+												 INNER JOIN CYL_CMM_0100_TN C
+				                        		 ON B.CRTE_USER_ID = C.USER_ID 
+					<include refid="incCond"/>	
+				   ) AS TOT
+			FROM CYL_KAIT_CMIT_MANAGE A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+										ON A.CMIT_NO = B.MAPNG_KEY
+										AND B.MAPNG_TABLE = 'CYL_KAIT_CMIT_MANAGE'
+										AND B.USE_YN = 'Y'
+										INNER JOIN CYL_CMM_0100_TN C
+				                        ON B.CRTE_USER_ID = C.USER_ID
+			<include refid="incCond"/>	
+        	ORDER BY A.CMIT_NO DESC     
+		<include refid="CylCmm.suffixPagination" />
+    </select>
+
+	<select id="view" parameterType="paramMap" resultType="paramMap">
+	  	SELECT A.CMIT_NO
+			   ,A.CMIT_NM
+			   ,A.CMIT_DC
+			   ,A.MDAT_PT
+			   ,A.EXPSR_YN
+		  FROM CYL_KAIT_CMIT_MANAGE A
+		 WHERE A.CMIT_NO = #{cmit_no}									
+    </select>
+    
+    <select id="mfcmmList" parameterType="paramMap" resultType="paramMap">
+	  	SELECT A.CMIT_NO
+			   ,A.USER_ID
+			   ,A.USER_NM
+			   ,B.CLSF
+		  FROM CYL_KAIT_CMIT_MFCMM A INNER JOIN CYL_CMM_0100_TN B
+								   ON A.USER_ID = B.USER_ID								   
+		 WHERE A.CMIT_NO = #{cmit_no}
+    </select>
+    
+    <sql id="cmit_incCond">
+		AND A.USER_STTUS_CD = 'p'
+		<if test="clsf != null and clsf != ''">
+		  AND A.CLSF LIKE CONCAT('%',#{clsf},'%')
+		</if>
+		<if test="user_nm != null and user_nm != ''">
+		  AND A.USER_NM LIKE CONCAT('%',#{user_nm},'%')
+		</if>
+	</sql>
+	
+	<select id="selectCmitList" parameterType="userVO" resultType="userVO">
+        /* Cmit.selectCmitList : 위원 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        SELECT A.USER_ID
+        	   ,A.LOGIN_ID
+        	   ,A.USER_NM
+        	   ,A.USER_STTUS_CD
+        	   ,A.CLSF
+        	   ,A.CRTE_USER_ID
+        	   ,A.CRTE_DTTM
+        	   ,A.UPDT_USER_ID
+        	   ,A.UPDT_DTTM
+			   ,(SELECT COUNT(1)
+			   	 FROM CYL_CMM_0100_VN A
+			   	 LEFT OUTER JOIN (SELECT C.USER_ID, D.AUTHOR_NM_KR, D.AUTHOR_ID FROM CYL_CMM_0101_TN C INNER JOIN CYL_CMM_0200_TN D ON C.AUTHOR_ID = D.AUTHOR_ID) B
+				 ON A.USER_ID = B.USER_ID
+			   	 WHERE AUTHOR_ID = 'ROLE_MFCMM'
+				<include refid="cmit_incCond"/>
+				<if test="mf_list != null and mf_list != ''">
+					<foreach separator="," item="vo" index="i" open="AND A.USER_ID NOT IN (" close=")" collection="mf_list">
+						#{vo.user_id}
+					</foreach>
+				</if>) AS TOT
+        FROM CYL_CMM_0100_VN A LEFT OUTER JOIN (SELECT C.USER_ID, D.AUTHOR_NM_KR, D.AUTHOR_ID FROM CYL_CMM_0101_TN C INNER JOIN CYL_CMM_0200_TN D ON C.AUTHOR_ID = D.AUTHOR_ID) B
+							   ON A.USER_ID = B.USER_ID
+		WHERE AUTHOR_ID = 'ROLE_MFCMM'
+		<include refid="cmit_incCond"/>
+        <if test="mf_list != null and mf_list != ''">
+        	<foreach separator="," item="vo" index="i" open="AND A.USER_ID NOT IN (" close=")" collection="mf_list">
+					#{vo.user_id}
+			</foreach>
+        </if>
+        <include refid="CylCmm.orderby" />
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+    
+    <insert id="insert" parameterType="paramMap">
+		/* Cmit.insert : 위원회관리 등록 */
+		<selectKey order="BEFORE" keyProperty="cmit_no" resultType="String">
+			SELECT F_CREATE_CMIT_NO() AS cmit_no;
+		</selectKey>
+		INSERT INTO 
+			CYL_KAIT_CMIT_MANAGE
+			(			 
+				CMIT_NO
+				,CMIT_NM
+				,CMIT_DC
+				,EXPSR_YN
+				,MDAT_PT
+			) VALUES (
+				#{cmit_no}
+				,#{cmit_nm}
+				,#{cmit_dc}
+				,#{expsr_yn}
+				,#{mdat_pt}
+			);
+			 
+		<if test="mf_list != null and mf_list != ''">
+			INSERT INTO CYL_KAIT_CMIT_MFCMM
+				(
+					CMIT_NO
+					,USER_ID
+					,USER_NM
+				)
+				SELECT #{cmit_no}
+					   ,A.USER_ID
+					   ,A.USER_NM
+				  FROM CYL_CMM_0100_VN A
+				 WHERE A.USER_ID IN
+			<foreach separator="," item="vo" index="i" open="(" close=");" collection="mf_list">
+				#{vo.user_id}
+			</foreach>
+		</if>
+		
+		INSERT INTO
+            CYL_CMM_DB_USE_MAPNG 
+            (
+            	MAPNG_KEY
+	            ,MAPNG_TABLE
+	            ,CRTE_USER_ID
+	            ,CRTE_DTTM
+	        ) VALUES (
+	            #{cmit_no}
+	            ,'CYL_KAIT_CMIT_MANAGE'
+	            ,#{login_user_id}
+	            ,NOW()
+	        );
+	</insert>
+    
+	<update id="update" parameterType="paramMap">
+		/* Cmit.update : 위원회관리 수정 */
+		UPDATE CYL_KAIT_CMIT_MANAGE
+		  SET CMIT_NM = #{cmit_nm}
+			  ,CMIT_DC = #{cmit_dc}
+			  ,MDAT_PT = #{mdat_pt}
+			  ,EXPSR_YN = #{expsr_yn}
+	  	WHERE CMIT_NO = #{cmit_no};
+				  
+		DELETE FROM CYL_KAIT_CMIT_MFCMM WHERE CMIT_NO = #{cmit_no};
+		
+		<if test="mf_list != null and mf_list != ''">
+			INSERT INTO CYL_KAIT_CMIT_MFCMM
+				(
+					CMIT_NO
+					,USER_ID
+					,USER_NM
+				)
+				SELECT #{cmit_no}
+					   ,A.USER_ID
+					   ,A.USER_NM
+				  FROM CYL_CMM_0100_VN A
+				 WHERE A.USER_ID IN
+			<foreach separator="," item="vo" index="i" open="(" close=");" collection="mf_list">
+				#{vo.user_id}
+			 </foreach>
+		</if>
+		
+		UPDATE CYL_CMM_DB_USE_MAPNG
+	       SET UPDT_USER_ID = #{login_user_id}
+	           ,UPDT_DTTM = NOW()
+	     WHERE MAPNG_KEY = #{cmit_no}
+	       AND MAPNG_TABLE = 'CYL_KAIT_CMIT_MANAGE';
+	</update>
+	
+	<delete id="delete" parameterType="paramMap">
+   		DELETE FROM CYL_KAIT_CMIT_MFCMM WHERE CMIT_NO = #{cmit_no};
+    	DELETE FROM CYL_KAIT_CMIT_MANAGE WHERE CMIT_NO = #{cmit_no};
+    </delete>
+</mapper>

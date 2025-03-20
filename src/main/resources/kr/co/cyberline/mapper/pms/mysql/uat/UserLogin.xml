@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="UserLogin">
+
+    <select id="actionLogin" parameterType="userVO" resultType="userVO">
+        /* Login.actionLogin : 사용자 로그인 처리 */
+        <![CDATA[
+        SELECT A.USER_ID
+        	   ,A.LOGIN_ID
+        	   ,A.PASSWD
+        	   ,A.USER_NM
+        	   ,A.USER_STTUS_CD
+        	   ,A.CRTE_USER_ID
+        	   ,A.CRTE_DTTM
+        	   ,A.UPDT_USER_ID
+        	   ,A.UPDT_DTTM
+        	   ,B.AUTHOR_NM_KR
+               ,C.IS_LOCK
+          FROM CYL_CMM_0100_VN A LEFT OUTER JOIN (SELECT AA.USER_ID
+                                 						 ,AA.AUTHOR_ID
+                                 						 ,BBB.AUTHOR_NM_KR
+                                 						 ,RN
+                           							FROM (SELECT AAA.*
+                                       							 ,(CASE @vjob WHEN AAA.USER_ID THEN @rownum := @rownum + 1 ELSE @rownum := 1 END) RN
+                                       							 ,(@vjob := AAA.USER_ID)    vjob
+                                 							FROM CYL_CMM_0101_TN AAA JOIN (SELECT @vjob:='', @rownum:=0 FROM DUAL) R
+                                 						   ORDER BY AAA.USER_ID
+                                						 ) AA INNER JOIN CYL_CMM_0200_TN BBB
+                                						      ON AA.AUTHOR_ID = BBB.AUTHOR_ID
+                           						  ) B
+                          		 ON A.USER_ID = B.USER_ID
+                         		 AND B.RN = 1
+                                 LEFT OUTER JOIN CYL_KAIT_LOGIN_HIST C
+                                 ON A.LOGIN_ID = C.USER_ID
+          WHERE A.USER_STTUS_CD = 'p'
+            AND A.LOGIN_ID = #{user_id}
+            AND A.PASSWD = #{passwd}
+        ]]>
+    </select>
+    <!--/*[통신분쟁]2021-08-23 / Kait-63 / by ihpark / 로그인 횟수제한 및 비밀번호 변경*/-->
+    <select id="selectLoginHist" parameterType="String" resultType="userVO">
+        /* Login.selectLoginHist : 사용자 테이블 조회 */
+        SELECT A.LOGIN_ID
+           ,B.USER_ID as HIST_LOGIN_ID
+           ,B.IS_LOCK
+           ,B.FAIL_CNT
+          FROM CYL_CMM_0100_TN A left outer join CYL_KAIT_LOGIN_HIST B on A.LOGIN_ID = B.USER_ID
+          where A.LOGIN_ID = #{user_id};
+    </select>
+
+    <insert id="insertHist" parameterType="String">
+        /* Login.insertHist : 로그인 실패 기록 인서트 */
+        INSERT INTO
+          CYL_KAIT_LOGIN_HIST(
+              USER_ID,
+              FAIL_CNT,
+              IS_LOCK,
+              CRTE_DTTM
+          )
+        VALUES(
+              #{user_id}
+              ,1
+              ,'N'
+              ,now()
+          );
+    </insert>
+
+    <update id="updateFailCnt" parameterType="String">
+        /* Login.updateFailCnt : 로그인 실패 횟수 업데이트 */
+        UPDATE CYL_KAIT_LOGIN_HIST
+        SET FAIL_CNT = FAIL_CNT+1
+          ,CRTE_DTTM = now()
+        WHERE USER_ID = #{user_id};
+    </update>
+
+    <update id="updateIsLock" parameterType="String">
+        /* Login.updateIsLock : 로그인 락 */
+        UPDATE CYL_KAIT_LOGIN_HIST
+        SET IS_LOCK = 'Y'
+        WHERE USER_ID = #{user_id};
+    </update>
+
+    <delete id="deleteHist" parameterType="String">
+        /* Login.deleteHist : 로그인 실패 기록 삭제 */
+        DELETE FROM CYL_KAIT_LOGIN_HIST
+        WHERE USER_ID = #{user_id};
+    </delete>
+</mapper>

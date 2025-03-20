@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Recsroom">
+    <!--[통신분쟁]2022-01-20 / Kait-85 / by ihpark / 게시판 조회수 수정	-->
+ 	<sql id="incCond">
+		WHERE 'Y' =  F_RET_USE_YN(A.BOARD_NO,'CYL_KAIT_BOARDS')
+            <if test="searchKeyword != null and searchKeyword != ''">
+                <if test="searchType == 'SEARCH_ALL'">
+                    AND (INSTR(UPPER(REPLACE(C.USER_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+                    OR INSTR(UPPER(REPLACE(A.BOARD_SJ, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0)
+                </if>
+                <if test="searchType == 'BOARD_SJ'">
+                    AND INSTR(UPPER(REPLACE(A.BOARD_SJ, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+                </if>
+                <if test="searchType == 'USER_NM'">
+                    AND INSTR(UPPER(REPLACE(C.USER_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+                </if>
+            </if>
+	</sql>
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+        <include refid="CylCmm.prefixPagination" />
+                   SELECT A.BOARD_NO
+      			 ,A.BOARD_SJ
+      			 ,A.BOARD_CN
+                 ,A.NOTI_DT
+                 ,DATE_FORMAT(A.NOTI_DT,'%Y-%m-%d') as NOTI_DT_YMD
+                 ,DATE_FORMAT(A.NOTI_DT,'%H') as NOTI_DT_H
+                 ,DATE_FORMAT(A.NOTI_DT,'%i') as NOTI_DT_I
+      			 ,F_IP_RDCNT(A.BOARD_NO ,'CYL_KAIT_BOARDS') AS BOARD_RDCNT
+      			 ,B.CRTE_USER_ID
+      			 ,DATE_FORMAT(B.CRTE_DTTM,'%Y-%m-%d') AS REG_DT
+      			 ,C.USER_NM AS REG_NM
+				 ,A.VIEWS
+      			 ,(SELECT COUNT(*) 
+      			  	 FROM CYL_KAIT_BOARDS A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+      			  							  ON A.BOARD_NO = B.MAPNG_KEY
+						                      AND B.MAPNG_TABLE = 'CYL_KAIT_BOARDS'
+						                      AND B.USE_YN = 'Y'
+						                      INNER JOIN CYL_CMM_0100_TN C
+						                      ON B.CRTE_USER_ID = C.USER_ID
+                                            <include refid="incCond"/>) AS TOT
+ 			  FROM CYL_KAIT_BOARDS A INNER JOIN CYL_CMM_DB_USE_MAPNG B 
+                       				   ON A.BOARD_NO = B.MAPNG_KEY
+				                       AND B.MAPNG_TABLE = 'CYL_KAIT_BOARDS'
+				                       AND B.USE_YN = 'Y'
+				                       INNER JOIN CYL_CMM_0100_TN C
+				                       ON B.CRTE_USER_ID = C.USER_ID    
+        <include refid="incCond"/>
+              ORDER BY A.NOTI_DT DESC
+  	 <include refid="CylCmm.suffixPagination" />
+    </select>
+    
+    
+    <select id="view" parameterType="paramMap" resultType="paramMap">
+  		  SELECT A.BOARD_NO
+                ,A.BOARD_SJ
+                ,A.BOARD_CN
+                ,A.NOTI_DT
+			    ,A.VIEWS
+                ,DATE_FORMAT(A.NOTI_DT,'%Y-%m-%d') as NOTI_DT_YMD
+                ,DATE_FORMAT(A.NOTI_DT,'%H') as NOTI_DT_H
+                ,DATE_FORMAT(A.NOTI_DT,'%i') as NOTI_DT_I
+                ,F_IP_RDCNT(A.BOARD_NO ,'CYL_KAIT_BOARDS') AS BOARD_RDCNT
+                ,DATE_FORMAT(B.CRTE_DTTM,'%Y-%m-%d') AS REG_DT
+				,C.USER_NM           
+           FROM CYL_KAIT_BOARDS A INNER JOIN CYL_CMM_DB_USE_MAPNG B 
+                                      ON A.BOARD_NO = B.MAPNG_KEY
+                                     AND B.MAPNG_TABLE = 'CYL_KAIT_BOARDS'
+                                     AND B.USE_YN = 'Y'
+  			                       INNER JOIN CYL_CMM_0100_TN C
+		 	                          ON B.CRTE_USER_ID = C.USER_ID
+          WHERE A.BOARD_NO= #{board_no} 
+    </select>
+    
+    <update id="rdcntInsert" parameterType="paramMap">
+		UPDATE CYL_KAIT_BOARDS SET VIEWS = VIEWS+1 WHERE BOARD_NO =#{board_no}
+    </update>
+</mapper>

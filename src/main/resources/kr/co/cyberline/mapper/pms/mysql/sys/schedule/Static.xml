@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--[통신분쟁]2021-09-27 / Kait-70 / by ihpark / 사건처리현황 통계-->
+<mapper namespace="Static">
+
+    <update id="statScheduler">
+        insert into
+            cyl_kait_casestats(crte_dttm,TM002,TM003,TM005,TM009,TM006_N,TM006_Y)
+        select
+            date_format(crte_dttm,'%Y-%m-%d %H:%i:%S') as crte_dttm
+            ,MAX(IF(statSttus = 'TM002', cnt, 0)) AS 'TM002'
+            ,MAX(IF(statSttus = 'TM003', cnt, 0)) AS 'TM003'
+            ,MAX(IF(statSttus = 'TM005', cnt, 0)) AS 'TM005'
+            ,MAX(IF(statSttus = 'TM009', cnt, 0)) AS 'TM009'
+            ,MAX(IF(statSttus = 'TM006_N', cnt, 0)) AS 'TM006_N'
+            ,MAX(IF(statSttus = 'TM006_Y', cnt, 0)) AS 'TM006_Y'
+        from
+        (
+            select
+                sub.statSttus as statSttus
+                ,count('x') as cnt
+                ,now() as crte_dttm
+            from
+                (
+                select
+                    case when a.STTUS='TM006' and a.MDAT_CONFM = 'Y' then 'TM006_Y'
+                         when a.STTUS='TM006' and a.MDAT_CONFM = 'N' then 'TM006_N'
+                         when a.STTUS='TM002' then 'TM003'
+                         else a.STTUS end as statSttus
+                    from cyl_kait_trubl_mdat_mst a
+                    inner join cyl_cmm_db_use_mapng b on a.TRUBL_MDAT_NO = b.MAPNG_KEY and b.MAPNG_TABLE ='CYL_KAIT_TRUBL_MDAT_MST' and b.USE_YN = 'Y'
+                    inner join cyl_cmm_0002_tc c on a.STTUS = c.CODE
+                    where a.sttus not in('TM001','TM004','TM007','TM008','TM994','TM995','TM996','TM997','TM998','TM999')
+                    union all
+                    select
+                        'TM002' as statSttus
+                    from cyl_kait_trubl_mdat_sttus_hist a
+                    where a.STTUS = 'TM002'
+                    and date_format(a.CRTE_DTTM,'%Y%m') = date_format(now(),'%Y%m')
+                ) sub
+            group by sub.statSttus having sub.statSttus not like 'TM9%'
+        ) as t
+        group by crte_dttm
+        ;
+    </update>
+
+</mapper>

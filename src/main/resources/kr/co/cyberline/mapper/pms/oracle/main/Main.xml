@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Main">
+
+
+
+    <select id="selectDeptUserList" parameterType="mainVO" resultType="mainVO">
+         SELECT USER_ID, USER_NM
+           FROM CYL_CMM_0100_VN
+          WHERE
+           <choose>
+               <when test="lvl != '' and lvl != null">
+                   INSTR(DEPT_CD, #{dept_cd}) = 1
+               </when>
+               <otherwise>
+                   DEPT_CD = #{dept_cd}
+               </otherwise>
+           </choose>
+
+    </select>
+</mapper>

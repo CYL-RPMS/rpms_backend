@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="GrupAdd">
+    <select id="selectPblancCnt" parameterType="paramMap" resultType="paramMap">
+    	SELECT COUNT(1) AS CNT 
+		  FROM CYL_KAIT_TRUBL_MDAT_PBLANC
+		 WHERE DATE_FORMAT(RQSTDT_END, '%Y-%M-%D') >= DATE_FORMAT(NOW(), '%Y-%M-%D')
+   	</select>
+</mapper>

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Sms">
+ 	<sql id="incCond">
+<!-- 		WHERE 'Y' =  F_RET_USE_YN(A.GOODS_NO,'CYL_IBOOK_GOODS')
+		<if test="ctgry != null and ctgry != ''">
+		  AND A.CTGRY = #{ctgry}
+		</if> -->
+	</sql>
+	<!-- <insert id="create" parameterType="paramMap">
+		INSERT INTO 
+   			CYL_CMM_SMS
+   			(
+   				SMS_NO
+				,SMS_SE
+				,MAPNG_KEY
+				,MAPNG_REFRN
+				,SMS_CN
+				,DSPTCH_F
+				,DSPTCH_M
+				,DSPTCH_L
+				,RECPTN_F
+				,RECPTN_M
+				,RECPTN_L
+   			) VALUES (
+   				F_CREATE_SMS_NO()
+   				,'SMS001'
+   				,''
+   				,''
+   				,#{msg_cn}
+   				,#{cttpc_f}
+   				,#{cttpc_m}
+   				,#{cttpc_l}
+   				,#{b_cttpc_f}
+   				,#{b_cttpc_m}
+   				,#{b_cttpc_l}
+   			)
+	</insert> -->
+	
+	<insert id="create" parameterType="paramMap">
+		<foreach separator="" item="vo" index="i" collection="sms_list">
+			INSERT INTO 
+	   			CYL_CMM_SMS
+	   			(
+	   				SMS_NO
+					,SMS_SE
+					,MAPNG_KEY
+					,MAPNG_REFRN
+					,SMS_CN
+					,DSPTCH_F
+					,DSPTCH_M
+					,DSPTCH_L
+					,RECPTN_F
+					,RECPTN_M
+					,RECPTN_L
+	   			) VALUES (
+	   				F_CREATE_SMS_NO()
+	   				,'SMS001'
+	   				,''
+	   				,''
+	   				,#{vo.msg_cn}
+	   				,#{vo.cttpc_f}
+	   				,#{vo.cttpc_m}
+	   				,#{vo.cttpc_l}
+	   				,#{vo.b_cttpc_f}
+	   				,#{vo.b_cttpc_m}
+	   				,#{vo.b_cttpc_l}
+	   			);
+   			</foreach>
+	</insert>
+	
+	<insert id="create_old" parameterType="paramMap">
+		<selectKey order="BEFORE" keyProperty="msg_no" resultType="String">
+			SELECT F_CREATE_SMS_NO() AS msg_no;
+		</selectKey>
+		INSERT INTO
+    		CYL_KAIT_MSG_HIST
+    		(
+    			MSG_NO
+    			,MSG_CTG
+    			,MSG_CN
+				,CALL_NUM
+				,RECIPT_NUM
+				,ETC
+    		) VALUES (
+				#{msg_no}
+				,'담당자 전송'    		
+    			,#{msg_cn}
+    			,#{call_num}
+    			,#{recipt_num}
+    			,#{etc}
+    		);
+   		
+    	INSERT INTO 
+    		CYL_CMM_DB_USE_MAPNG	
+    		(
+    			MAPNG_KEY
+				,MAPNG_TABLE
+				,USE_YN
+				,CRTE_USER_ID
+				,CRTE_DTTM
+    		) VALUES (
+    			#{msg_no}
+    			,'CYL_KAIT_MSG_HIST'
+    			,'Y'
+    			,#{login_user_id}
+    			,NOW()
+    		);
+    </insert>
+</mapper>

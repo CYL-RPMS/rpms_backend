@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="PageManage">
+ 	<sql id="incCond">
+		WHERE 'Y' =  F_RET_USE_YN(A.PAGE_NO,'CYL_KAIT_PGE_MNG')
+		 <if test="searchType != null and searchType != ''">
+                    <if test="searchKeyword != null and searchKeyword != ''">
+                        <if test="searchType == 'PAGE_TITLE'">
+                        AND INSTR(UPPER(REPLACE(A.PAGE_TITLE, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+                        </if>
+                        <if test="searchType == 'USER_NM'">
+                        AND INSTR(UPPER(REPLACE(C.USER_NM, ' ', '')), UPPER(REPLACE(#{searchKeyword}, ' ', ''))) > 0
+                        </if>
+                    </if>
+          </if>
+	</sql>
+	
+<!-- 	 <insert id="create" parameterType="paramMap">
+		<selectKey order="BEFORE" keyProperty="page_no" resultType="String">
+				SELECT CONCAT('KAIT_PG_',CURDATE()+0,'_',IFNULL(LPAD(MAX(REPLACE(page_no,CONCAT('KAIT_PG_',CURDATE()+0,'_'),'')) + 1,4,0),'0001')) AS page_no
+  				  FROM CYL_KAIT_PGE_MNG
+ 				 WHERE page_no LIKE CONCAT('KAIT_PG_',CURDATE()+0,'%');
+		</selectKey>
+			INSERT INTO
+    		CYL_KAIT_PGE_MNG
+    		(
+    			PAGE_NO
+    			,PAGE_TITLE
+				,PAGE_CN
+    		) VALUES (
+				#{page_no}    		
+    			,#{page_title}
+    			,#{page_cn}
+    		);
+    	INSERT INTO 
+    		CYL_CMM_DB_USE_MAPNG	
+    		(
+    			MAPNG_KEY
+				,MAPNG_TABLE
+				,USE_YN
+				,CRTE_USER_ID
+				,CRTE_DTTM
+    		) VALUES (
+    			#{page_no}
+    			,'CYL_KAIT_PGE_MNG'
+    			,'Y'
+    			,#{login_user_id}
+    			,NOW()
+    		);
+    </insert> -->
+	
+
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+        <include refid="CylCmm.prefixPagination" />
+          SELECT A.PAGE_NO
+      			 ,CONCAT(A.PAGE_SUB_PARNTS,' > ',A.PAGE_SUB_CHLDRN ) AS PAGE_LOCATION
+      			 ,A.PAGE_CN
+      			 ,B.CRTE_USER_ID
+      			 ,DATE_FORMAT(B.CRTE_DTTM,'%Y-%m-%d') AS REG_DT
+      			 ,C.USER_NM AS REG_NM
+      			 ,(SELECT COUNT(*) 
+      			  	 FROM CYL_KAIT_PGE_MNG A INNER JOIN CYL_CMM_DB_USE_MAPNG B
+      			  							  ON A.PAGE_NO = B.MAPNG_KEY
+						                      AND B.MAPNG_TABLE = 'CYL_KAIT_PGE_MNG'
+						                      AND B.USE_YN = 'Y'
+						                      INNER JOIN CYL_CMM_0100_TN C
+						                      ON B.CRTE_USER_ID = C.USER_ID
+      			  															) AS TOT
+ 			  FROM CYL_KAIT_PGE_MNG A INNER JOIN CYL_CMM_DB_USE_MAPNG B 
+                       				   ON A.PAGE_NO = B.MAPNG_KEY
+				                       AND B.MAPNG_TABLE = 'CYL_KAIT_PGE_MNG'
+				                       AND B.USE_YN = 'Y'
+				                       INNER JOIN CYL_CMM_0100_TN C
+				                       ON B.CRTE_USER_ID = C.USER_ID    
+        <include refid="incCond"/>
+               ORDER BY PAGE_NO ASC
+  	 <include refid="CylCmm.suffixPagination" />
+    </select>
+    
+    
+      <select id="view" parameterType="paramMap" resultType="paramMap">
+  		  SELECT A.PAGE_NO
+                ,A.PAGE_TITLE
+                ,A.PAGE_CN
+                ,A.PAGE_CN AS PAGE_CN_EDIT
+                ,DATE_FORMAT(B.CRTE_DTTM,'%Y-%m-%d') AS REG_DT
+				,C.USER_NM           
+           FROM CYL_KAIT_PGE_MNG A INNER JOIN CYL_CMM_DB_USE_MAPNG B 
+                                      ON A.PAGE_NO = B.MAPNG_KEY
+                                     AND B.MAPNG_TABLE = 'CYL_KAIT_PGE_MNG'
+                                     AND B.USE_YN = 'Y'
+  			                       INNER JOIN CYL_CMM_0100_TN C
+		 	                          ON B.CRTE_USER_ID = C.USER_ID
+          WHERE A.PAGE_NO= #{page_no} 
+    </select>
+    
+    <update id="modify_delete" parameterType="paramMap">
+    	UPDATE CYL_CMM_DB_USE_MAPNG
+    	   SET UPDT_USER_ID = #{login_user_id}
+			   ,UPDT_DTTM = NOW()
+			   ,USE_YN = 'N'
+		 WHERE MAPNG_KEY = #{page_no}
+		   AND MAPNG_TABLE = 'CYL_KAIT_PGE_MNG'
+    </update>
+    
+    <update id="modify" parameterType="paramMap">
+	 
+	   	UPDATE CYL_KAIT_PGE_MNG
+	   	   SET PAGE_TITLE =  #{page_title}
+	   	       ,PAGE_CN = #{page_cn}
+	   	 WHERE PAGE_NO = #{page_no}; 
+		 
+		UPDATE CYL_CMM_DB_USE_MAPNG	
+		   SET CRTE_USER_ID = #{login_user_id}
+			  ,CRTE_DTTM = NOW()
+	    WHERE MAPNG_KEY = #{page_no} 
+	      AND MAPNG_TABLE = 'CYL_KAIT_PGE_MNG';
+	      
+	      
+    </update>
+</mapper>

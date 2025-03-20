@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ExpsrGoodsManage">
+	<sql id="incCond">
+		WHERE 'Y' =  F_RET_USE_YN(CONCAT(A.GOODS_NO,' ',A.GOODS_EXPSR_LC),'CYL_IBOOK_EXPSR_GOODS')
+		 AND A.GOODS_EXPSR_LC = #{goods_expsr_lc}	
+	</sql>
+
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+        /* ExpsrGoodsManage.list : 노출상품 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        SELECT A.GOODS_NO
+			   ,B.GOODS_NM
+			   ,B.NETPRC
+			   ,B.DSCNT_RATE
+			   ,B.DSCNT_PRC
+			   ,A.GOODS_EXPSR_ORDER
+			   ,F_COMM_FILE_ID(A.GOODS_NO,'CYL_IBOOK_GOODS','GOODS_IMG_MAIN_L',1) AS ATCH_FILE_ID
+			   ,(SELECT COUNT(*) FROM CYL_IBOOK_EXPSR_GOODS A INNER JOIN CYL_IBOOK_GOODS B ON A.GOODS_NO = B.GOODS_NO <include refid="incCond"/>) AS TOT
+		  FROM CYL_IBOOK_EXPSR_GOODS A INNER JOIN CYL_IBOOK_GOODS B
+		  							   ON A.GOODS_NO = B.GOODS_NO
+        <include refid="incCond"/>
+         ORDER BY A.GOODS_EXPSR_ORDER ASC
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+    
+    <sql id="incPopCond">
+		WHERE 'Y' =  F_RET_USE_YN(A.GOODS_NO,'CYL_IBOOK_GOODS')
+		  AND A.GOODS_NO NOT IN (
+		  	  SELECT GOODS_NO
+		  	    FROM CYL_IBOOK_EXPSR_GOODS
+		  	   WHERE GOODS_EXPSR_LC = #{goods_expsr_lc}
+		  )
+	</sql>
+
+	<select id="popList" parameterType="paramMap" resultType="paramMap">
+        /* ExpsrGoodsManage.popList : 노출등록상품 목록 조회 */
+        SELECT A.GOODS_NO
+			   ,A.GOODS_NM
+			   ,A.GOODS_DC
+			   ,A.NETPRC
+			   ,A.DSCNT_RATE
+			   ,A.DSCNT_PRC 
+		  FROM CYL_IBOOK_GOODS A
+        <include refid="incPopCond"/>
+    </select>
+
+    <select id="view" parameterType="paramMap" resultType="paramMap">
+    	SELECT A.BN_NO
+			   ,A.BN_NM
+			   ,A.BN_ORDER
+			   ,DATE_FORMAT(A.BGNDE, '%Y-%m-%d') AS BGNDE
+			   ,DATE_FORMAT(A.ENDDE, '%Y-%m-%d') AS ENDDE
+			   ,A.NTHG_TMLMT
+			   ,A.USE_YN
+			   ,A.LINK_URL
+			   ,A.LINK_URL_SE
+			   ,F_COMM_FILE_ID(A.BN_NO,'CYL_IBOOK_BANNER','ATCH_FILE_ID',1) AS ATCH_FILE_ID
+		       ,F_COMM_FILE_NM(F_COMM_FILE_ID(A.BN_NO,'CYL_IBOOK_BANNER','ATCH_FILE_ID',1)) AS ATCH_FILE_ID_NM
+        FROM CYL_IBOOK_BANNER A
+        <include refid="incCond"/>
+         AND A.BN_NO = #{bn_no}
+    </select>
+
+    <insert id="create" parameterType="paramMap">
+    	INSERT INTO 
+    		CYL_IBOOK_EXPSR_GOODS
+    		(
+    			GOODS_NO
+				,GOODS_EXPSR_LC
+				,GOODS_EXPSR_ORDER
+				,USE_YN
+    		) 
+    		SELECT A.GOODS_NO
+    			   ,#{goods_expsr_lc}
+    			   ,(SELECT COUNT(1) FROM CYL_IBOOK_EXPSR_GOODS WHERE GOODS_EXPSR_LC = #{goods_expsr_lc})+(@rownum:=@rownum+1)
+    			   ,'Y'
+    		  FROM CYL_IBOOK_GOODS A
+    		 WHERE 'Y' =  F_RET_USE_YN(A.GOODS_NO,'CYL_IBOOK_GOODS')
+    		   AND A.GOODS_NO IN (
+    		 	   <foreach separator="," item="vo" collection="goods_list">
+    		 	   		#{vo.GOODS_NO}
+    		 	   </foreach>
+    		 	   )
+    		   AND (@rownum:=0) = 0
+    		;
+    	INSERT INTO 
+    		CYL_CMM_DB_USE_MAPNG	
+    		(
+    			MAPNG_KEY
+				,MAPNG_TABLE
+				,USE_YN
+				,CRTE_USER_ID
+				,CRTE_DTTM
+    		) VALUES 
+    		<foreach separator="," item="vo" collection="goods_list">
+			(
+	   			CONCAT(#{vo.GOODS_NO},' ',#{goods_expsr_lc})
+	   			,'CYL_IBOOK_EXPSR_GOODS'
+	   			,'Y'
+	   			,#{login_user_id}
+	   			,NOW()
+   			)
+	 	   </foreach>
+	 	   ;
+    </insert>
+    
+    <update id="deleteGoods" parameterType="paramMap">
+    	DELETE FROM CYL_IBOOK_EXPSR_GOODS
+    	 WHERE GOODS_NO = #{goods_no}
+    	   AND GOODS_EXPSR_LC = #{goods_expsr_lc};
+    	   
+    	DELETE FROM CYL_CMM_DB_USE_MAPNG
+    	 WHERE MAPNG_KEY = CONCAT(#{goods_no},' ',#{goods_expsr_lc})
+    	   AND MAPNG_TABLE = 'CYL_IBOOK_EXPSR_GOODS';
+    	   
+    	SET @rank:=0;
+    	UPDATE CYL_IBOOK_EXPSR_GOODS
+    	   SET GOODS_EXPSR_ORDER = @rank:=@rank+1
+    	 WHERE GOODS_EXPSR_LC = #{goods_expsr_lc}
+    	 ORDER BY GOODS_EXPSR_ORDER;
+    </update>
+</mapper>

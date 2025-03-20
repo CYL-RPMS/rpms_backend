@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CaseManage">
+ 	<sql id="incCond">
+		WHERE 'Y' = F_RET_USE_YN(A.CASE_MANAGE_NO,'CYL_KAIT_CASE_MANAGE')
+		 <if test="case_manage_no != null and case_manage_no != ''">
+		  AND A.CASE_MANAGE_NO = #{case_manage_no}
+		</if>
+		 <if test="year != null and year != ''">
+		  AND A.YEAR = #{year}
+		</if>
+		 <if test="trubl_mdat_no != null and trubl_mdat_no != ''">
+		  AND D.TRUBL_MDAT_NO_LIST LIKE CONCAT('%', #{trubl_mdat_no}, '%') 
+		</if>
+		 <if test="mdat_decsn_se != null and mdat_decsn_se != ''">
+		  AND A.MDAT_DECSN_SE = #{mdat_decsn_se}
+		</if>
+		 <if test="sj != null and sj != ''">
+		  AND A.SJ LIKE CONCAT('%', #{sj}, '%')
+		</if>
+	</sql>
+	
+	<sql id="caseSQL">
+		SELECT A.CASE_MANAGE_NO
+			,A.MDAT_DECSN_SE
+			,A.INFR_TY
+			,A.YEAR
+			,A.SJ
+			,A.CN
+			,A.CN AS CN_EDIT
+			,G.USE_YN
+			,G.CRTE_USER_ID
+			,DATE_FORMAT(G.CRTE_DTTM, '%Y-%m-%d') AS CRTE_DTTM
+			,G.UPDT_USER_ID
+			,DATE_FORMAT(G.UPDT_DTTM, '%Y-%m-%d') AS UPDT_DTTM
+			,D.TRUBL_MDAT_NO_LIST
+			,(SELECT COUNT(*) 
+			    FROM CYL_KAIT_CASE_MANAGE A INNER JOIN CYL_CMM_DB_USE_MAPNG G 
+									   		ON A.CASE_MANAGE_NO = G.MAPNG_KEY  
+									  		AND G.MAPNG_TABLE = 'CYL_KAIT_CASE_MANAGE' 
+									  		AND G.USE_YN = 'Y' 
+			     <include refid="incCond"/> ) AS TOT
+		FROM CYL_KAIT_CASE_MANAGE A INNER JOIN CYL_CMM_DB_USE_MAPNG G 
+							   		ON A.CASE_MANAGE_NO = G.MAPNG_KEY  
+							  		AND G.MAPNG_TABLE = 'CYL_KAIT_CASE_MANAGE' 
+							  		AND G.USE_YN = 'Y'
+							 		LEFT JOIN ( SELECT CASE_MANAGE_NO, GROUP_CONCAT(TRUBL_MDAT_NO SEPARATOR ' ') AS TRUBL_MDAT_NO_LIST 
+							               		  FROM CYL_KAIT_CASE_MANAGE_INCDNT 
+							               		 GROUP BY CASE_MANAGE_NO
+						            ) D 
+		          		       		ON A.CASE_MANAGE_NO = D.CASE_MANAGE_NO
+        <include refid="incCond"/>
+	</sql>
+	
+	<select id="list" parameterType="paramMap" resultType="paramMap">
+         /* CaseManage.list : 사례 목록*/
+        <include refid="CylCmm.prefixPagination" />
+		<include refid="caseSQL" />        	
+        ORDER BY A.CASE_MANAGE_NO DESC
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+    
+    <select id="view" parameterType="paramMap" resultType="paramMap">
+      	/* CaseManage.view : 사례관리 상세*/
+      	<include refid="caseSQL" /> 
+    </select>
+    
+    <select id="caseIncdntList" parameterType="paramMap" resultType="paramMap">
+    	SELECT A.CASE_MANAGE_NO
+			   ,M.TRUBL_MDAT_NO 
+			   ,M.TRUBL_MDAT_SE 
+	      FROM CYL_KAIT_CASE_MANAGE A INNER JOIN CYL_KAIT_CASE_MANAGE_INCDNT I 
+							   		  ON A.CASE_MANAGE_NO = I.CASE_MANAGE_NO
+									  INNER JOIN CYL_KAIT_TRUBL_MDAT_MST M 
+							   		  ON I.TRUBL_MDAT_NO = M.TRUBL_MDAT_NO 
+	     WHERE 'Y' = F_RET_USE_YN(A.CASE_MANAGE_NO,'CYL_KAIT_CASE_MANAGE')
+		   AND A.CASE_MANAGE_NO  = #{case_manage_no}
+    </select>
+    
+    <insert id="create" parameterType="paramMap">
+    	<selectKey order="BEFORE" keyProperty="case_manage_no" resultType="String">
+			SELECT F_CREATE_CASE_MANAGE_NO() AS case_manage_no;
+		</selectKey>
+		/* -------------------- 사례 */	
+    	INSERT INTO 
+    		CYL_KAIT_CASE_MANAGE
+			(
+				CASE_MANAGE_NO
+				,MDAT_DECSN_SE
+				,INFR_TY
+				,YEAR
+				,SJ
+				,CN
+			) VALUES (
+				 #{case_manage_no}
+				,#{mdat_decsn_se}
+				,#{infr_ty}
+				,#{year}
+				,#{sj}
+				,#{cn}
+			);
+    
+    	INSERT INTO 
+    		CYL_CMM_DB_USE_MAPNG	
+   			( 
+	   			MAPNG_KEY
+				,MAPNG_TABLE
+				,USE_YN
+				,CRTE_USER_ID 
+				,CRTE_DTTM
+			) VALUES (
+		    	#{case_manage_no}
+				,'CYL_KAIT_CASE_MANAGE'
+				,'Y'
+				,#{login_user_id}
+				,NOW()
+			);
+			<if test="case_incdnt_list != null and case_incdnt_list != ''">
+			/* -------------------- 사례 사건목록 */
+				<foreach separator="" item="vo" index="i" collection="case_incdnt_list">
+					INSERT INTO 
+						CYL_KAIT_CASE_MANAGE_INCDNT
+						( 
+							CASE_MANAGE_NO
+							,TRUBL_MDAT_NO
+						) VALUES (
+						  	#{case_manage_no}
+							,#{vo.TRUBL_MDAT_NO}
+						);
+				</foreach>
+			</if>
+			<if test="case_file_list != null and case_file_list != ''">
+			/* -------------------- 사례 첨부파일 */
+	   			<foreach separator="" item="vo" index="i" collection="case_file_list">
+				INSERT INTO 
+					CYL_CMM_FILE_MAPNG 
+				    ( 
+				    	MAPNG_KEY
+				      	,MAPNG_TABLE 
+				      	,ATCH_FILE_ID
+				      	,COLUNM_NM
+				      	,SN
+				      	,CRTE_USER_ID
+				      	,CRTE_DTTM
+					) VALUES (
+				     	#{case_manage_no}
+				     	,'CYL_KAIT_CASE_MANAGE'
+				     	,#{vo.ATCH_FILE_KEY}
+				     	,#{vo.COLUNM_NM}
+				     	,1
+				     	,#{login_user_id}
+				     	,NOW()
+					); 
+				</foreach>
+			</if>
+    </insert>
+    
+    
+    
+        <update id="modify" parameterType="paramMap">
+		/* -------------------- 사례 */	
+		UPDATE CYL_KAIT_CASE_MANAGE SET
+    	      MDAT_DECSN_SE = #{mdat_decsn_se}
+    	     ,INFR_TY = #{infr_ty}
+    	     ,YEAR = #{year}
+    	     ,SJ = #{sj}
+    	     ,CN = #{cn}
+		WHERE CASE_MANAGE_NO = #{case_manage_no};
+		
+		UPDATE CYL_CMM_DB_USE_MAPNG SET
+	       	   UPDT_USER_ID =  #{login_user_id}
+  		      ,UPDT_DTTM = NOW()
+  		 WHERE MAPNG_KEY = #{case_manage_no};
+		<if test="case_file_list != null and case_file_list != ''">
+		/* -------------------- 사례 첨부파일 */
+			DELETE FROM CYL_CMM_FILE_MAPNG
+		   	 WHERE MAPNG_KEY = #{case_manage_no}
+			   AND MAPNG_TABLE = 'CYL_KAIT_CASE_MANAGE'
+			   AND COLUNM_NM LIKE 'CASE_FILE_%'
+			 ;
+   			<foreach separator="" item="vo" index="i" collection="case_file_list">
+			INSERT INTO	CYL_CMM_FILE_MAPNG 
+			     ( MAPNG_KEY
+					,MAPNG_TABLE
+					,ATCH_FILE_ID
+					,COLUNM_NM
+					,SN
+					,CRTE_USER_ID
+					,CRTE_DTTM
+				 ) VALUES (
+					#{case_manage_no}
+					,'CYL_KAIT_CASE_MANAGE'
+					,#{vo.ATCH_FILE_KEY}
+					,#{vo.COLUNM_NM}
+					,1
+					,#{login_user_id}
+					,NOW()
+				 ); 
+			</foreach>
+		</if>
+    </update>
+    
+    
+    <update id="modify_delete" parameterType="paramMap">
+    	/* -------------------- 사례 삭제 */
+    	UPDATE CYL_CMM_DB_USE_MAPNG SET
+	       	   UPDT_USER_ID =  #{login_user_id}
+  		      ,UPDT_DTTM = NOW()
+  		      ,USE_YN = 'N'
+  		 WHERE MAPNG_KEY = #{case_manage_no}
+    </update>
+</mapper>
