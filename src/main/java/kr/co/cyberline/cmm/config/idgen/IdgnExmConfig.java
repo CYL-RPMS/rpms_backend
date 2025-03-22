@@ -9,7 +9,7 @@ import egovframework.rte.fdl.idgnr.impl.strategy.EgovIdGnrStrategyImpl;
 import javax.sql.DataSource;
 
 @Configuration
-public class IdgnExm {
+public class IdgnExmConfig {
 
     @Bean
     public EgovIdGnrStrategyImpl atchFileIdStrategy() {
