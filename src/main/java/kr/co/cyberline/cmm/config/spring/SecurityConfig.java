@@ -11,7 +11,6 @@ import org.springframework.security.web.firewall.DefaultHttpFirewall;
 import org.springframework.security.web.firewall.HttpFirewall;
 
 @Configuration
-@EnableWebSecurity
 public class SecurityConfig {
 
     @Autowired
