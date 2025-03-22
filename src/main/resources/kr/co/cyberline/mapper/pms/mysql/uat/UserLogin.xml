@@ -86,4 +86,37 @@
         DELETE FROM CYL_KAIT_LOGIN_HIST
         WHERE USER_ID = #{user_id};
     </delete>
+
+    <select id="findByRefreshToken" parameterType="String" resultType="UserVO">
+        /* Login.refreshToken 조회 : 사용자 테이블 조회 */
+        SELECT REFRESH_TOKEN
+          FROM CYL_CMM_0100_TN
+          where REFRESH_TOKEN = #{refresh_token};
+    </select>
+
+    <update id="updateRefreshToken" parameterType="UserVO">
+        /* Login.updateRefreshToken : refreshToken 갱신 */
+        UPDATE CYL_CMM_0100_TN
+        SET REFRESH_TOKEN = #{refresh_token}
+        WHERE LOGIN_ID = #{login_id};
+    </update>
+
+    <insert id="insertLoginHist" parameterType="paramMap">
+        <selectKey keyProperty="login_hist_id" resultType="java.lang.String" order="BEFORE">
+            <![CDATA[
+			SELECT LPAD(IFNULL(MAX(login_hist_id) , '0')+1, 20, '0') FROM CYL_CMM_0800_TH
+			]]>
+        </selectKey>
+        /* LoginHist.insertLoginHist : 로그인이력 등록 */
+        <![CDATA[
+		INSERT INTO CYL_CMM_0800_TH(
+			  LOGIN_HIST_ID, LOGIN_ID, LOGIN_IP
+			, LOGIN_MTHD, LOGIN_DEVICE, CRTE_DTTM
+		) VALUES (
+			  #{login_hist_id}, #{login_id}, #{login_ip}
+			, #{login_mthd}, null, NOW()
+		);
+		]]>
+
+    </insert>
 </mapper>

@@ -5,7 +5,7 @@
  * Description : 게시판 VO
  * Copyright (C) 2015 by Cyber Line  All right reserved.
  */
-package kr.co.cyberline.cmm.model;
+package kr.co.cyberline.pms.sys.bbs.service;
 
 import kr.co.cyberline.cmm.util.lang.CylStringUtil;
 import kr.co.cyberline.cmm.web.model.CylWebDefaultVO;

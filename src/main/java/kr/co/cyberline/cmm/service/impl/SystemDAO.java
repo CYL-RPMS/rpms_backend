@@ -1,11 +1,11 @@
 package kr.co.cyberline.cmm.service.impl;
 
-import kr.co.cyberline.cmm.model.AuthorManageVO;
 import kr.co.cyberline.cmm.model.SystemVO;
 import kr.co.cyberline.cmm.model.UserVO;
 import kr.co.cyberline.cmm.web.dao.CylAbstractDAO;
 import kr.co.cyberline.cmm.web.model.MenuManageVO;
 import kr.co.cyberline.cmm.web.model.ProgramManageVO;
+import kr.co.cyberline.pms.sys.ath.service.AuthorManageVO;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;

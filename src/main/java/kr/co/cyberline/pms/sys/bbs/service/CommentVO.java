@@ -5,7 +5,7 @@
  * Description : 댓글 VO
  * Copyright (C) 2015 by Cyber Line  All right reserved.
  */
-package kr.co.cyberline.cmm.model;
+package kr.co.cyberline.pms.sys.bbs.service;
 
 import kr.co.cyberline.cmm.util.lang.CylStringUtil;
 import kr.co.cyberline.cmm.web.model.CylWebDefaultVO;
@@ -22,7 +22,8 @@ import java.util.Date;
  */
 @Alias("commentVO")
 public class CommentVO extends CylWebDefaultVO {
-	private static final long serialVersionUID = 2331188214752795586L;
+
+    private static final long serialVersionUID = 2331188214752795586L;
 
     private String bbs_id;                  // 게시판아이디
     private int ntt_id;                     // 게시물아이디

@@ -1,10 +1,10 @@
 package kr.co.cyberline.cmm.service;
 
-import kr.co.cyberline.cmm.model.AuthorManageVO;
 import kr.co.cyberline.cmm.model.SystemVO;
 import kr.co.cyberline.cmm.model.UserVO;
 import kr.co.cyberline.cmm.web.model.MenuManageVO;
 import kr.co.cyberline.cmm.web.model.ProgramManageVO;
+import kr.co.cyberline.pms.sys.ath.service.AuthorManageVO;
 
 import java.util.List;
 

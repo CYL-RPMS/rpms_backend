@@ -1,6 +1,7 @@
 package kr.co.cyberline.cmm.model;
 
 import kr.co.cyberline.cmm.web.model.CylUserVO;
+import kr.co.cyberline.pms.sys.ath.service.AuthorManageVO;
 import org.apache.ibatis.type.Alias;
 
 import java.util.List;
@@ -47,7 +48,8 @@ public class UserVO extends CylUserVO {
     private String emplmn_de;
     private String hffc_at;
     private String instt_confm_sttus;
-    
+
+    private String refresh_token;
     
     public List<AuthorManageVO> authorList;
     
@@ -280,5 +282,13 @@ public class UserVO extends CylUserVO {
 	}
 	public void setInstt_confm_sttus(String instt_confm_sttus) {
 		this.instt_confm_sttus = instt_confm_sttus;
+	}
+
+	public String getRefresh_token() {
+		return refresh_token;
+	}
+
+	public void setRefresh_token(String refresh_token) {
+		this.refresh_token = refresh_token;
 	}
 }

@@ -52,6 +52,10 @@ dependencies {
 	implementation files("${projectDir}/src/main/resources/lib/commons-collections-3.2.2.jar")
 	implementation files("${projectDir}/src/main/resources/lib/egovframework.rte.fdl.cmmn-3.7.0.jar")
 	implementation files("${projectDir}/src/main/resources/lib/egovframework.rte.fdl.idgnr-3.7.0.jar")
+	implementation files("${projectDir}/src/main/resources/lib/spring-modules-validation-0.9.jar")
+	implementation files("${projectDir}/src/main/resources/lib/guava-18.0.jar")
+	implementation files("${projectDir}/src/main/resources/lib/querydsl-apt-3.6.3.jar")
+	implementation files("${projectDir}/src/main/resources/lib/querydsl-core-3.6.3.jar")
 	//implementation files("${projectDir}/src/main/resources/lib/cyl-cmm-util.jar")
 	//implementation files("${projectDir}/src/main/resources/lib/cyl-cmm-web.jar")
 	// cyl-cmm :end
