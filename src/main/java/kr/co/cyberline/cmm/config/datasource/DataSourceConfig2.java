@@ -1,9 +1,7 @@
 package kr.co.cyberline.cmm.config.datasource;
 
 import org.apache.ibatis.session.SqlSessionFactory;
-import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.SqlSessionTemplate;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -11,37 +9,45 @@ import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.context.annotation.PropertySource;
 
 import javax.sql.DataSource;
 
+import static kr.co.cyberline.cmm.config.datasource.DataSourceConfig.getSqlSessionFactory;
+
 @Configuration
-@MapperScan(basePackages = "kr.co.cyberline")
+@PropertySource("classpath:jdbc-${spring.profiles.active}.properties")
 public class DataSourceConfig2 {
 
     @Value("${jdbc.type2}")
     private String dbType;
 
+    @Value("${spring.datasource2.jdbc-url}")
+    private String dbUrl;
+
+    @Value("${spring.datasource2.username}")
+    private String dbUsername;
+
+    @Value("${spring.datasource2.password}")
+    private String dbPassword;
+
+    @Value("${spring.datasource2.driver-class-name}")
+    private String dbDriverClassName;
+
     @Bean(name = "datasource2")
     @ConfigurationProperties(prefix = "spring.datasource2")
     public DataSource dataSource() {
-        return DataSourceBuilder.create().build();
+        return DataSourceBuilder.create()
+                .url(dbUrl)
+                .username(dbUsername)
+                .password(dbPassword)
+                .driverClassName(dbDriverClassName)
+                .build();
     }
 
     @Bean(name = "sqlSessionFactory2")
     public SqlSessionFactory sqlSessionFactory(@Qualifier("datasource2") DataSource dataSource, ApplicationContext applicationContext) throws Exception {
-        SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
-        sqlSessionFactoryBean.setDataSource(dataSource);
-        sqlSessionFactoryBean.setTypeAliasesPackage("kr.co.cyberline");
-
-        Resource myBatisConfig = new PathMatchingResourcePatternResolver().getResource("classpath:mybatis-config.xml");
-        sqlSessionFactoryBean.setConfigLocation(myBatisConfig);
-
-        String mapperLocation = "classpath:kr/co/cyberline/mapper/**/" + dbType + "/**/*.xml";
-        sqlSessionFactoryBean.setMapperLocations(applicationContext.getResources(mapperLocation));
-
-        return sqlSessionFactoryBean.getObject();
+        return getSqlSessionFactory(dataSource, applicationContext, dbType);
     }
 
     @Bean(name = "sqlSessionTemplate2")

@@ -52,7 +52,7 @@ public class CommonServiceImpl implements CommonService {
     @Resource(name = "atchFileIdGnrService")
     private EgovIdGnrService egovIdGnrService;
 
-    @Resource(name = "CylFileService")
+    @Resource(name = "cylFileService")
     private CylFileService cylFileService;
 
     @Override

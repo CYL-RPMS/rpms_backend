@@ -29,10 +29,10 @@ import java.util.*;
 @RestController
 public class CommController {
 
-    @Resource(name = "CommService")
+    @Resource(name = "commService")
     private CommService commService;
 
-    @Resource(name = "CylFileService")
+    @Resource(name = "cylFileService")
     private CylFileService fileService;
 
     @RequestMapping(value = "/comm/{command}/{namespace}/{queryid}")

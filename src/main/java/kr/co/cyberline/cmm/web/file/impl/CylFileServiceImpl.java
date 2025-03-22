@@ -11,7 +11,7 @@ import kr.co.cyberline.cmm.web.file.CylFileVO;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-@Service(value = "CylFileService")
+@Service(value = "cylFileService")
 public class CylFileServiceImpl implements CylFileService {
     @Resource(name = "CylFileDAO")
     private CylFileDAO cylFileDAO;

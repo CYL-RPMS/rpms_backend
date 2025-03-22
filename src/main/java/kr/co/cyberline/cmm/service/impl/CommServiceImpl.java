@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import java.sql.SQLException;
 import java.util.Map;
 
-@Service(value = "CommService")
+@Service(value = "commService")
 public class CommServiceImpl implements CommService{
 
     @Autowired
