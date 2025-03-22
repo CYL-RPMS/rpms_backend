@@ -1,6 +1,5 @@
 package kr.co.cyberline.cmm.config.idgen;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,7 +22,7 @@ public class IdgnExm {
 
     @Bean
     public EgovTableIdGnrServiceImpl atchFileIdGnrService(
-            @Qualifier("dataSource") DataSource dataSource,
+            DataSource dataSource,
             EgovIdGnrStrategyImpl atchFileIdStrategy) {
 
         EgovTableIdGnrServiceImpl service = new EgovTableIdGnrServiceImpl();

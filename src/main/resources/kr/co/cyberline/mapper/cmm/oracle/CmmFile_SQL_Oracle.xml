@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CylCmmFile">
+
+    <select id="selectAtchFileList" parameterType="cylFileVO" resultType="cylFileVO">
+        /* CylCmmFile.selectFileManageList : 파일 목록 조회 */
+        <include refid="CylCmm.prefixPagination" />
+        <![CDATA[
+        SELECT
+            A.ATCH_FILE_ID, A.USE_AT, A.CRTE_DTTM, B.FILE_SN, B.FILE_STRE_COURS,
+            B.STRE_FILE_NM, B.ORGINL_FILE_NM, B.FILE_EXTSN, B.FILE_CN, B.FILE_SIZE,
+        COUNT(1) OVER() TOT
+        FROM CYL_CMM_0400_TN A
+        INNER JOIN CYL_CMM_0401_TN B ON A.ATCH_FILE_ID = B.ATCH_FILE_ID
+        WHERE 1=1
+        ]]>
+        <if test="atch_file_id != null and atch_file_id != ''">
+            AND A.ATCH_FILE_ID = #{atch_file_id}
+        </if>
+        <if test="use_at != null and use_at != ''">
+            AND A.USE_AT = #{use_at}
+            AND B.USE_AT = #{use_at}
+        </if>
+        <include refid="CylCmm.orderby" />
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+
+    <select id="selectAtchFileDetail" parameterType="cylFileVO" resultType="cylFileVO">
+        /* CylCmmFile.selectAtchFileDetail : 파일 상세 조회 */
+        <![CDATA[
+        SELECT
+            A.ATCH_FILE_ID, A.FILE_SN, A.FILE_STRE_COURS, A.STRE_FILE_NM,
+            A.ORGINL_FILE_NM, A.FILE_EXTSN, A.FILE_SIZE
+        FROM CYL_CMM_0401_TN A
+        WHERE A.ATCH_FILE_ID = #{atch_file_id} AND A.FILE_SN = #{file_sn}
+        ]]>
+        <if test="use_at != null and use_at != ''">
+            AND A.USE_AT = #{use_at}
+        </if>
+    </select>
+
+    <insert id="insertAtchFile" parameterType="cylFileVO">
+        /* CylCmmFile.insertAtchFile : 첨부파일속성 등록 */
+        <![CDATA[
+        INSERT INTO CYL_CMM_0400_TN(
+            ATCH_FILE_ID, USE_AT, CRTE_DTTM
+        ) VALUES (
+            #{atch_file_id}, #{use_at}, SYSDATE
+        )
+        ]]>
+    </insert>
+
+    <insert id="insertAtchFileDetail" parameterType="cylFileVO">
+        /* CylCmmFile.insertAtchFileDetail : 첨부파일상세 등록 */
+        <![CDATA[
+        INSERT INTO CYL_CMM_0401_TN(
+            ATCH_FILE_ID, FILE_SN, FILE_STRE_COURS, STRE_FILE_NM,
+            ORGINL_FILE_NM, FILE_EXTSN, FILE_CN, FILE_SIZE, USE_AT
+        ) VALUES (
+            #{atch_file_id}, (SELECT NVL(MAX(FILE_SN), 0) + 1 FROM CYL_CMM_0401_TN WHERE ATCH_FILE_ID = #{atch_file_id}),
+            #{file_stre_cours}, #{stre_file_nm}, #{orginl_file_nm},
+            #{file_extsn}, #{file_cn}, #{file_size}, #{use_at}
+        )
+        ]]>
+    </insert>
+
+    <update id="updateAtchFileUseAt" parameterType="cylFileVO">
+        /* CylCmmFile.updateAtchFileUseAt : 첨부파일 속성 사용여부 수정 */
+        <![CDATA[
+        UPDATE CYL_CMM_0400_TN SET
+          USE_AT = #{use_at}
+        WHERE ATCH_FILE_ID = #{atch_file_id}
+        ]]>
+    </update>
+
+    <update id="updateAtchFileDetailUseAt" parameterType="cylFileVO">
+        /* CylCmmFile.updateAtchFileDetailUseAt : 첨부파일 상세 사용여부 수정 */
+        <![CDATA[
+        UPDATE CYL_CMM_0401_TN SET
+          USE_AT = #{use_at}
+        WHERE ATCH_FILE_ID = #{atch_file_id}
+        ]]>
+        <if test="file_sn != null and file_sn != ''">
+            AND FILE_SN = #{file_sn}
+        </if>
+    </update>
+
+    <delete id="deleteAtchFile" parameterType="cylFileVO">
+        /* CylCmmFile.deleteAtchFile : 첨부파일 속성 삭제 */
+        <![CDATA[
+          DELETE FROM CYL_CMM_0400_TN WHERE ATCH_FILE_ID = #{atch_file_id}
+        ]]>
+    </delete>
+
+    <delete id="deleteAtchFileDetail" parameterType="cylFileVO">
+        /* CylCmmFile.deleteAtchFileDetail : 첨부파일 상세 삭제 */
+        <![CDATA[
+          DELETE FROM CYL_CMM_0401_TN WHERE ATCH_FILE_ID = #{atch_file_id}
+        ]]>
+        <if test="file_sn != null and file_sn != ''">
+            <![CDATA[ AND FILE_SN = #{file_sn} ]]>
+        </if>
+    </delete>
+
+</mapper>

@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CylCmmHierCode">
+
+    <sql id="incHierGroupCodeCondition">
+        WHERE 1=1
+        <if test="condGroupId != null and condGroupId != ''">
+            AND GRP_ID = #{condGroupId}
+        </if>
+        <if test="condGroupNm != null and condGroupNm != ''">
+            AND INSTR(UPPER(REPLACE(GRP_ID_NM, ' ', '')), UPPER(REPLACE(#{condGroupNm}, ' ', ''))) > 0
+        </if>
+        <if test="condGroupUseAt != null and condGroupUseAt != ''">
+            AND USE_AT = #{condGroupUseAt}
+        </if>
+    </sql>
+
+    <select id="selectHierGroupCodeList" parameterType="cylHierCodeVO" resultType="cylHierCodeVO">
+        /* CylCmmHierCode.selectHierGroupCodeList */
+        <include refid="CylCmm.prefixPagination"/>
+        SELECT A.GRP_ID, A.GRP_ID_NM, A.GRP_DC, A.USE_AT AS GRP_USE_AT, A.GRP_SN, A.CRTE_USER_ID,
+        A.CRTE_DTTM, A.UPDT_USER_ID, A.UPDT_DTTM,
+        (SELECT USER_NM FROM CYL_CMM_0100_VN WHERE USER_ID = A.CRTE_USER_ID) AS CRTE_USER_NM,
+        (SELECT USER_NM FROM CYL_CMM_0100_VN WHERE USER_ID = A.UPDT_USER_ID) AS UPDT_USER_NM
+        FROM CYL_CMM_0003_TC A
+        <include refid="incHierGroupCodeCondition"/>
+        <!--<include refid="CylCmm.orderby"/>-->
+        <if test="condOrder != null and condOrder != ''">
+            ORDER BY A.GRP_SN ASC
+        </if>
+        <include refid="CylCmm.suffixPagination"/>
+    </select>
+
+    <select id="selectHierGroupCodeListCnt" parameterType="cylHierCodeVO" resultType="int">
+        /* CylCmmHierCode.selectHierGroupCodeListCnt */
+        SELECT COUNT(1)
+        FROM CYL_CMM_0003_TC
+        <include refid="incHierGroupCodeCondition"/>
+    </select>
+
+    <select id="selectHierGroupCodeCom" parameterType="cylHierCodeVO" resultType="cylHierCodeVO">
+        /* CylCmmHierCode.selectHierGroupCodeCom */
+        SELECT GRP_ID AS CODE, GRP_ID_NM AS CODE_NM, USE_AT AS GRP_USE_AT
+        FROM CYL_CMM_0003_TC
+        ORDER BY GRP_SN ASC
+    </select>
+
+    <select id="selectHierGroupCode" parameterType="cylHierCodeVO" resultType="cylHierCodeVO">
+        /* CylCmmHierCode.selectHierGroupCode */
+        SELECT GRP_ID, GRP_ID_NM, GRP_DC,
+               USE_AT AS GRP_USE_AT, GRP_SN, CRTE_USER_ID,
+               CRTE_DTTM, UPDT_USER_ID, UPDT_DTTM,
+               (SELECT USER_NM FROM CYL_CMM_0100_VN WHERE USER_ID = A.CRTE_USER_ID) AS CRTE_USER_NM,
+               (SELECT USER_NM FROM CYL_CMM_0100_VN WHERE USER_ID = A.UPDT_USER_ID) AS UPDT_USER_NM
+        FROM CYL_CMM_0003_TC A
+        WHERE GRP_ID = #{grp_id}
+    </select>
+
+    <select id="isHierGroupCodeExists" parameterType="cylHierCodeVO" resultType="int">
+        /* CylCmmHierCode.isHierGroupCodeExists */
+        SELECT COUNT(1)
+        FROM CYL_CMM_0003_TC
+        WHERE GRP_ID = #{grp_id}
+    </select>
+
+    <insert id="insertHierGroupCode" parameterType="cylHierCodeVO">
+        /* CylCmmHierCode.insertHierGroupCode */
+        INSERT INTO CYL_CMM_0003_TC (
+            GRP_ID, GRP_ID_NM, GRP_DC,
+            USE_AT, GRP_SN, CRTE_USER_ID,
+            CRTE_DTTM, UPDT_USER_ID, UPDT_DTTM
+        ) VALUES (
+            #{grp_id}, #{grp_id_nm}, #{grp_dc},
+            #{grp_use_at}, #{grp_sn}, #{crte_user_id},
+            NOW(), #{crte_user_id}, NOW()
+        )
+    </insert>
+
+    <update id="updateHierGroupCode" parameterType="cylHierCodeVO">
+        /* CylCmmHierCode.updateHierGroupCode */
+        UPDATE CYL_CMM_0003_TC SET
+            GRP_ID_NM = #{grp_id_nm},
+            GRP_DC = #{grp_dc},
+            USE_AT = #{grp_use_at},
+            GRP_SN = #{grp_sn},
+            UPDT_USER_ID = #{updt_user_id},
+            UPDT_DTTM = NOW()
+        WHERE GRP_ID = #{grp_id}
+    </update>
+
+    <delete id="deleteHierGroupCode" parameterType="cylHierCodeVO">
+        /* CylCmmHierCode.deleteHierGroupCode */
+        DELETE FROM CYL_CMM_0003_TC
+        WHERE GRP_ID = #{grp_id}
+    </delete>
+
+    <delete id="truncateHierGroupCode">
+        /* CylCmmHierCode.truncateHierGroupCode */
+        DELETE FROM CYL_CMM_0003_TC
+    </delete>
+
+    <sql id="incHierDetailCodeCondition">
+        WHERE 1=1
+        <if test="condGroupId != null and condGroupId != ''">
+            AND A.GRP_ID = #{condGroupId}
+        </if>
+        <if test="condGroupNm != null and condGroupNm != ''">
+            AND INSTR(UPPER(REPLACE(B.GRP_ID_NM, ' ', '')), UPPER(REPLACE(#{condGroupNm}, ' ', ''))) > 0
+        </if>
+        <if test="condCode != null and condCode != ''">
+            AND CODE = #{condCode}
+        </if>
+        <if test="condCodeNm != null and condCodeNm != ''">
+            AND INSTR(UPPER(REPLACE(CODE_NM, ' ', '')), UPPER(REPLACE(#{condCodeNm}, ' ', ''))) > 0
+        </if>
+        <if test="condCodeUseAt != null and condCodeUseAt != ''">
+            AND A.USE_AT = #{condCodeUseAt}
+        </if>
+    </sql>
+
+    <select id="selectList" parameterType="cylHierCodeVO" resultType="cylHierCodeVO">
+        /* CylCmmHierCode.selectList */
+        <include refid="CylCmm.prefixPagination"/>
+        SELECT A.GRP_ID, CODE, CODE_NM,
+        A.GRP_DC, A.USE_AT AS CODE_USE_AT, A.GRP_SN,
+        UPR_CODE, A.CRTE_USER_ID, A.CRTE_DTTM,
+        A.UPDT_USER_ID, A.UPDT_DTTM, B.GRP_ID_NM,
+        (SELECT USER_NM FROM CYL_CMM_0100_VN WHERE USER_ID = CRTE_USER_ID) AS CRTE_USER_NM,
+        (SELECT USER_NM FROM CYL_CMM_0100_VN WHERE USER_ID = UPDT_USER_ID) AS UPDT_USER_NM
+        FROM CYL_CMM_0004_TC A
+        INNER JOIN CYL_CMM_0003_TC B
+        ON A.GRP_ID = B.GRP_ID
+        <include refid="incHierDetailCodeCondition"/>
+        <include refid="CylCmm.orderby"/>
+        <if test="condOrder != null and condOrder != ''">
+            AND A.GRP_SN ASC
+        </if>
+        <include refid="CylCmm.suffixPagination"/>
+    </select>
+
+    <select id="selectListCount" parameterType="cylHierCodeVO" resultType="int">
+        /* CylCmmHierCode.selectListCount */
+        SELECT COUNT(1)
+        FROM CYL_CMM_0004_TC A
+        INNER JOIN CYL_CMM_0003_TC B
+        ON A.GRP_ID = B.GRP_ID
+        <include refid="incHierDetailCodeCondition"/>
+    </select>
+
+    <select id="selectHierCodeTreeList" parameterType="cylHierCodeVO" resultType="cylHierCodeVO">
+        /* CylCmmHierCode.selectHierCodeTreeList */
+        SELECT A.GRP_ID, CODE, CODE_NM,
+        A.CODE_DC, A.USE_AT AS CODE_USE_AT, A.CODE_SN,
+        UPR_CODE, A.CRTE_USER_ID, A.CRTE_DTTM,
+        A.UPDT_USER_ID, A.UPDT_DTTM, B.GRP_ID_NM,
+        (SELECT USER_NM FROM CYL_CMM_0100_VN WHERE USER_ID = A.CRTE_USER_ID) AS CRTE_USER_NM,
+        (SELECT USER_NM FROM CYL_CMM_0100_VN WHERE USER_ID = A.UPDT_USER_ID) AS UPDT_USER_NM
+        FROM CYL_CMM_0004_TC A
+        INNER JOIN CYL_CMM_0003_TC B ON A.GRP_ID = B.GRP_ID
+        WHERE A.GRP_ID = #{grp_id}
+        AND UPR_CODE = #{upr_code}
+        <if test="project_se != null and project_se != ''">
+            <if test="project_se eq 'ex_pms'">
+                AND NOT EXISTS (SELECT * FROM ETRM_MAPPING WHERE GRP_ID = A.GRP_ID AND A.CODE = CODE AND DATE_FORMAT(now(), '%Y') = ETRM_YEAR AND USE_AT = 'N')
+            </if>
+        </if>
+        ORDER BY A.CODE_SN ASC
+    </select>
+
+    <select id="getById" parameterType="cylHierCodeVO" resultType="cylHierCodeVO">
+        /* CylCmmHierCode.getById */
+        SELECT A.GRP_ID, CODE, CODE_NM,
+               A.CODE_DC, A.USE_AT AS CODE_USE_AT , A.CODE_SN,
+               UPR_CODE, A.CRTE_USER_ID, A.CRTE_DTTM,
+               A.UPDT_USER_ID, A.UPDT_DTTM, B.GRP_ID_NM,
+               (SELECT USER_NM FROM CYL_CMM_0100_VN WHERE USER_ID = A.CRTE_USER_ID) AS CRTE_USER_NM,
+               (SELECT USER_NM FROM CYL_CMM_0100_VN WHERE USER_ID = A.UPDT_USER_ID) AS UPDT_USER_NM
+        FROM CYL_CMM_0004_TC A
+        INNER JOIN CYL_CMM_0003_TC B ON A.GRP_ID = B.GRP_ID
+        WHERE A.GRP_ID = #{grp_id}
+        AND A.CODE = #{code}
+    </select>
+
+    <select id="isExist" parameterType="cylHierCodeVO" resultType="int">
+        /* CylCmmHierCode.isExist */
+        SELECT COUNT(1)
+        FROM CYL_CMM_0004_TC A
+        INNER JOIN CYL_CMM_0003_TC B ON A.GRP_ID = B.GRP_ID
+        WHERE A.GRP_ID = #{grp_id}
+        AND CODE = #{code}
+    </select>
+
+    <insert id="insert" parameterType="cylHierCodeVO">
+        /* CylCmmHierCode.insert */
+        INSERT INTO CYL_CMM_0004_TC (
+            GRP_ID, CODE, CODE_NM,
+            CODE_DC, USE_AT, CODE_SN,
+            UPR_CODE, CRTE_USER_ID, CRTE_DTTM,
+            UPDT_USER_ID, UPDT_DTTM
+        ) VALUES (
+            #{grp_id}, #{code}, #{code_nm},
+            #{code_dc}, #{code_use_at}, #{code_sn},
+            #{upr_code}, #{crte_user_id}, NOW(),
+            #{updt_user_id}, NOW()
+        )
+    </insert>
+
+    <update id="update" parameterType="cylHierCodeVO">
+        /* CylCmmHierCode.update */
+        UPDATE CYL_CMM_0004_TC SET
+            CODE_NM = #{code_nm},
+            CODE_DC = #{code_dc},
+            USE_AT = #{code_use_at},
+            CODE_SN = #{code_sn},
+            UPR_CODE = #{upr_code},
+            UPDT_USER_ID = #{crte_user_id},
+            UPDT_DTTM = NOW()
+        WHERE GRP_ID = #{grp_id}
+        AND CODE = #{code}
+    </update>
+
+    <delete id="delete" parameterType="cylHierCodeVO">
+        /* CylCmmHierCode.delete */
+        DELETE FROM CYL_CMM_0004_TC
+        WHERE GRP_ID = #{grp_id}
+        AND CODE = #{code}
+    </delete>
+
+    <delete id="deleteGroupHierDetailCode" parameterType="cylHierCodeVO">
+        /* CylCmmHierCode.deleteGroupHierDetailCode */
+        DELETE FROM CYL_CMM_0004_TC
+        WHERE GRP_ID = #{grp_id}
+    </delete>
+
+    <delete id="truncateHierDetailCode" parameterType="cylHierCodeVO">
+        /* CylCmmHierCode.truncateHierDetailCode */
+        DELETE FROM CYL_CMM_0004_TC
+    </delete>
+
+    <select id="selectHierCodeList" parameterType="cylHierCodeVO" resultType="cylHierCodeVO">
+        /* CylCmmHierCode.selectHierCodeList */
+        SELECT CODE, CODE_NM, USE_AT AS CODE_USE_AT
+		FROM CYL_CMM_0004_TC
+		WHERE GRP_ID = #{grp_id}
+		AND UPR_CODE = #{upr_code}
+		ORDER BY CODE_SN
+    </select>
+
+    <select id="selectHierGroupIdList" parameterType="cylHierCodeVO" resultType="cylHierCodeVO">
+        /* CylCmmHierCode.selectHierGroupIdList */
+        SELECT GRP_ID, GRP_ID_NM, GRP_DC
+        FROM CYL_CMM_0003_TC
+        WHERE USE_AT = 'Y'
+        ORDER BY GRP_SN
+    </select>
+
+    <delete id="deleteHierCode" parameterType="cylHierCodeVO">
+        /* CylCmmHierCode.deleteHierCode */
+        DELETE A FROM CYL_CMM_0004_TC A
+        WHERE (A.GRP_ID, A.CODE) IN (SELECT GRP_ID, CODE
+                                        FROM( SELECT GRP_ID, hierarchy_cyl_cmm_0004_tc(code) AS code
+                                                FROM (SELECT @start_with := #{code}, @id := @start_with, @level := 0) vars
+                                                    , (SELECT B.CODE, @code := code, B.GRP_ID, @group := GRP_ID
+                                                       FROM CYL_CMM_0004_Tc B
+                                                       WHERE GRP_ID = #{grp_id}) B
+                                                WHERE @id IS NOT NULL) AA)
+    </delete>
+</mapper>

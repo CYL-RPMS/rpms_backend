@@ -1,60 +1,39 @@
 package kr.co.cyberline.cmm.service.impl;
 
 import kr.co.cyberline.cmm.service.*;
-import org.apache.ibatis.session.SqlSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.sql.SQLException;
 import java.util.Map;
 
 @Service(value = "CommService")
 public class CommServiceImpl implements CommService{
 
     @Autowired
-    private DatabaseService databaseService;
-
-    @Autowired
-    private SqlSession sqlSession;
+    private CommDAO commDAO;
 
     @Override
-    public Object commonApi(Map paramMap) {
+    public Object commonApi(Map params) throws SQLException {
 
-        final Object[] result = new Object[1];
+        Object return_object = null;
 
-        databaseService.processWithDatabase((String)paramMap.get("dbType"), () -> {
+        String command = (String)params.get("command");
 
-            String nameSpace = (String)paramMap.get("namespace");
-            String queryId = (String)paramMap.get("queryid");
-            String command = (String)paramMap.get("command");
+        if ("select".equals(command)) {
+            return_object = commDAO.commonSelect(params);
+        } else if ("selectOne".equals(command)) {
+            return_object = commDAO.commonSelectOne(params);
+        } else if ("selectMap".equals(command)) {
+            return_object = commDAO.commonSelectMap(params);
+        } else if ("insert".equals(command)) {
+            return_object = commDAO.commonInsert(params);
+        } else if ("update".equals(command)) {
+            return_object = commDAO.commonUpdate(params);
+        } else if ("delete".equals(command)) {
+            return_object = commDAO.commonDelete(params);
+        }
 
-            if (nameSpace == null || queryId == null) {
-                throw new IllegalArgumentException("NAME_SPACE와 METHOD_ID는 필수 파라미터입니다.");
-            }
-
-            String mapperId = nameSpace + "." + queryId;
-
-            switch (command) {
-                case "select":
-                    result[0] = sqlSession.selectList(mapperId, paramMap);
-                    break;
-                case "selectOne":
-                    result[0] = sqlSession.selectOne(mapperId, paramMap);
-                    break;
-                case "update":
-                    result[0] = sqlSession.update(mapperId, paramMap);
-                    break;
-                case "insert":
-                    result[0] = sqlSession.insert(mapperId, paramMap);
-                    break;
-                case "delete":
-                    result[0] = sqlSession.delete(mapperId, paramMap);
-                    break;
-                default:
-                    throw new IllegalArgumentException("지원하지 않는 command 값입니다: " + command);
-            }
-        });
-
-        // 작업 결과 반환
-        return result[0];
+        return return_object;
     }
 }

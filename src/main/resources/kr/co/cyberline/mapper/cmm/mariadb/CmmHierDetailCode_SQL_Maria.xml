@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CylCmmHierDetailCode">
+
+    <select id="selectHiercodeDetailList" parameterType="cylHierCodeVO" resultType="cylHierCodeVO">
+        /* CylCmmHierDetailCode.selectHiercodeDetailList */
+        SELECT
+            GRP_ID,
+            CODE,
+            CODE_NM,
+            UPR_CODE
+        FROM CYL_CMM_0004_TC
+        WHERE GRP_ID = #{grp_id}
+        AND USE_AT = 'Y'
+        ORDER BY CODE_SN
+    </select>
+
+    <select id="selectHiercodeSubListTotCnt" parameterType="cylHierCodeVO" resultType="int">
+        /* CylCmmHierDetailCode.selectHiercodeSubListTotCnt */
+        SELECT COUNT(1)
+        FROM CYL_CMM_0004_TC A
+        WHERE A.GRP_ID = #{grp_id}
+        AND A.UPR_CODE = #{upr_code}
+    </select>
+
+    <select id="selectHiercodeSubList" parameterType="cylHierCodeVO" resultType="cylHierCodeVO">
+        /* CylCmmHierDetailCode.selectHiercodeSubList */
+        <include refid="CylCmm.prefixPagination"/>
+        SELECT A.GRP_ID,
+        A.UPR_CODE,
+        A.CODE,
+        A.CODE_NM,
+        A.USE_AT AS CODE_USE_AT,
+        (SELECT USER_NM FROM CYL_CMM_0100_TN WHERE USER_ID = A.CRTE_USER_ID) AS CRTE_USER_NM,
+        A.CODE_SN,
+        A.CRTE_DTTM,
+        A.CODE_DC
+        FROM CYL_CMM_0004_TC A
+        WHERE A.GRP_ID = #{grp_id}
+        AND A.UPR_CODE = #{upr_code}
+        <include refid="CylCmm.orderby"/>
+        <include refid="CylCmm.suffixPagination"/>
+    </select>
+</mapper>

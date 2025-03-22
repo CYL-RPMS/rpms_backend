@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CylCmm">
+
+    <sql id="prefixCustomPagination">
+        <if test='pagingEnable != null and pagingEnable == "1"'>SELECT * FROM (SELECT RESULT_LIST.* FROM(</if>
+    </sql>
+
+    <sql id="prefixPagination">
+        <if test='pagingEnable != null and pagingEnable == "1"'>SELECT * FROM (SELECT RESULT_LIST.*, ROWNUM AS RNUM FROM(</if>
+    </sql>
+
+    <sql id="suffixPagination">
+        <if test='pagingEnable != null and pagingEnable == "1"'>
+            <![CDATA[) RESULT_LIST WHERE ROWNUM <= #{firstIndex} + #{recordCountPerPage}) WHERE RNUM > #{firstIndex}]]>
+        </if>
+    </sql>
+
+    <sql id="suffixCustomPagination">
+        <if test='pagingEnable != null and pagingEnable == "1"'>
+            <![CDATA[) RESULT_LIST WHERE RESULT_LIST.RNUM <= #{firstIndex} + #{recordCountPerPage}) WHERE RNUM > #{firstIndex}]]>
+        </if>
+    </sql>
+
+    <sql id="orderby">
+        <if test='condOrder != null and !condOrder.equals("")'>
+            ORDER BY ${condOrder}<if test='condAlign != null and !condOrder.equals("")'>${condAlign}</if>
+        </if>
+    </sql>
+
+    <sql id="siblingsby">
+        <if test='condOrder != null and !condOrder.equals("")'>
+            ORDER SIBLINGS BY ${condOrder}<if test='condAlign != null and !condOrder.equals("")'>${condAlign}</if>
+        </if>
+    </sql>
+    <sql id="updateDbusemapng">
+        UPDATE CYL_CMM_DB_USE_MAPNG
+ 		   SET UPDT_USER_ID = #{login_user_id}
+			   ,UPDT_DTTM = SYSDATE
+		 WHERE MAPNG_KEY = #{mapng_key}
+		   AND MAPNG_TABLE = #{mapng_table};
+    </sql>
+    <sql id="insertDbusemapng">
+            INSERT INTO
+ 			CYL_CMM_DB_USE_MAPNG (
+ 				MAPNG_KEY
+				,MAPNG_TABLE
+				,USE_YN
+				,CRTE_USER_ID
+				,CRTE_DTTM
+ 			) VALUES (
+ 				#{mapng_key}
+ 				,#{mapng_table}
+ 				,'Y'
+ 				,#{login_user_id}
+ 				,SYSDATE
+ 			);
+    </sql>
+    <sql id="deleteDbusemapng">
+            UPDATE CYL_CMM_DB_USE_MAPNG
+ 		   SET USE_YN = 'N'
+ 		   	   ,UPDT_USER_ID = #{login_user_id}
+			   ,UPDT_DTTM = SYSDATE
+		 WHERE MAPNG_KEY = #{mapng_key}
+		   AND MAPNG_TABLE = #{mapng_table}
+    </sql>
+    <sql id="file">
+        DELETE CYL_CMM_FILE_MAPNG
+        WHERE MAPNG_TABLE = #{mapng_table}
+        AND MAPNG_KEY = #{mapng_key};
+
+        <if test="attac_multi != null and attac_multi != ''">
+            <foreach separator="" item="vo" index="i" collection="attac_multi">
+                INSERT INTO
+                CYL_CMM_FILE_MAPNG (
+                MAPNG_KEY
+                ,MAPNG_TABLE
+                ,ATCH_FILE_ID
+                ,COLUNM_NM
+                ,COLUNM_SN
+                ,SN
+                ,CRTE_USER_ID
+                ,CRTE_DTTM
+                ) VALUES (
+                #{mapng_key}
+                ,#{mapng_table}
+                ,#{vo.atch_file_id}
+                ,#{column_nm}
+                ,#{vo.colunm_sn}
+                ,1
+                ,#{login_user_id}
+                ,SYSDATE
+                );
+            </foreach>
+        </if>
+    </sql>
+    <select id="select" parameterType="paramMap" resultType="paramMap">
+        <include refid="CylCmm.prefixPagination" />
+        SELECT A.*, COUNT(1) OVER() TOT FROM(
+        ${txt}
+        ) A
+        <include refid="CylCmm.suffixPagination" />
+    </select>
+    <update id="update" parameterType="paramMap">
+        {call declare begin
+        ${txt}
+        end}
+    </update>
+    <insert id="insert" parameterType="paramMap">
+        {call declare begin
+        ${txt}
+        end}
+    </insert>
+    <delete id="delete" parameterType="paramMap">
+        {call declare begin
+        ${txt}
+        end}
+    </delete>
+</mapper>

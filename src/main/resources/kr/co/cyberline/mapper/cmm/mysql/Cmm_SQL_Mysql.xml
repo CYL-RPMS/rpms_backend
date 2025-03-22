@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CylCmm">
+
+    <sql id="prefixCustomPagination">
+        <if test='pagingEnable != null and pagingEnable == "1"'>SELECT * FROM (SELECT RESULT_LIST.* FROM(</if>
+    </sql>
+
+    <sql id="prefixPagination">
+        <if test='pagingEnable != null and pagingEnable == "1"'>SELECT * FROM (SELECT RESULT_LIST.*, RESULT_LIST.TOT-@rownum AS RNUM, @rownum:=@rownum+1 AS RNUM2 FROM(</if>
+    </sql>
+
+    <sql id="suffixPagination">
+        <if test='pagingEnable != null and pagingEnable == "1"'>
+            <![CDATA[
+              ) RESULT_LIST WHERE (@rownum:=0) = 0)  AS RESULT_LIST_DATA WHERE RNUM2 > #{firstIndex} AND RNUM2 <= #{firstIndex} + #{recordCountPerPage}
+          ]]>
+        </if>
+    </sql>
+
+    <sql id="suffixCustomPagination">
+        <if test='pagingEnable != null and pagingEnable == "1"'>
+            <![CDATA[) RESULT_LIST WHERE RESULT_LIST.RNUM <= #{firstIndex} + #{recordCountPerPage}) WHERE RNUM > #{firstIndex}]]>
+        </if>
+    </sql>
+
+    <sql id="orderby">
+        <if test='condOrder != null and !condOrder.equals("")'>
+            ORDER BY ${condOrder}<if test='condAlign != null and !condOrder.equals("")'>${condAlign}</if>
+        </if>
+    </sql>
+
+    <sql id="siblingsby">
+        <if test='condOrder != null and !condOrder.equals("")'>
+            ORDER SIBLINGS BY ${condOrder}<if test='condAlign != null and !condOrder.equals("")'>${condAlign}</if>
+        </if>
+    </sql>
+</mapper>
