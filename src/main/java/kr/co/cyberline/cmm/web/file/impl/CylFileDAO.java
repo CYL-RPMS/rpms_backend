@@ -5,7 +5,7 @@ import kr.co.cyberline.cmm.web.dao.CylAbstractDAO;
 import kr.co.cyberline.cmm.web.file.CylFileVO;
 import org.springframework.stereotype.Repository;
 
-@Repository
+@Repository(value = "CylFileDAO")
 public class CylFileDAO extends CylAbstractDAO {
     public CylFileDAO() {
     }

@@ -9,6 +9,7 @@ package kr.co.cyberline.pms.common.service.impl;
 
 import egovframework.rte.fdl.cmmn.exception.FdlException;
 import egovframework.rte.fdl.idgnr.EgovIdGnrService;
+import jakarta.servlet.http.HttpServletRequest;
 import kr.co.cyberline.cmm.util.file.CylFileUtil;
 import kr.co.cyberline.cmm.web.file.CylFileService;
 import kr.co.cyberline.cmm.web.file.CylFileVO;
@@ -22,7 +23,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

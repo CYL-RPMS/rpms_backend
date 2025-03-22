@@ -7,7 +7,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import javax.servlet.http.HttpServletRequest;
+
+import jakarta.servlet.http.HttpServletRequest;
 import kr.co.cyberline.cmm.util.CylResourceCloseHelper;
 import kr.co.cyberline.cmm.util.file.CylFileUtil;
 import kr.co.cyberline.cmm.util.lang.CylStringUtil;

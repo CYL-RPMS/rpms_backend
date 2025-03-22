@@ -7,7 +7,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import kr.co.cyberline.cmm.service.*;
 import kr.co.cyberline.cmm.util.sec.CylScrtyUtil;
+import kr.co.cyberline.cmm.web.file.CylFileService;
+import kr.co.cyberline.cmm.web.file.CylFileVO;
 import kr.co.cyberline.cmm.web.pagination.CylPaginationSupport;
+import kr.co.cyberline.cmm.web.view.CylFileDownView;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.io.BufferedReader;
 import java.security.NoSuchAlgorithmException;
@@ -28,11 +32,14 @@ public class CommController {
     @Resource(name = "CommService")
     private CommService commService;
 
+    @Resource(name = "CylFileService")
+    private CylFileService fileService;
+
     @RequestMapping(value = "/comm/{command}/{namespace}/{queryid}")
     @ResponseBody
     public Map<String, Object> commonApiMapping(HttpServletRequest request, HttpServletResponse response,
                                          @PathVariable("command") String command, @PathVariable("namespace") String namespace,
-                                         @PathVariable("queryid") String queryid, HttpSession session, ModelMap model) throws JSONException, NoSuchAlgorithmException, SQLException {
+                                         @PathVariable("queryid") String queryid) throws JSONException, NoSuchAlgorithmException, SQLException {
         Map<String, Object> params = new HashMap<>();
         String jStr = readJSONStringFromRequest(request);
         if (!request.getParameterNames().hasMoreElements() && StringUtils.isNotEmpty(jStr)) {
@@ -63,6 +70,46 @@ public class CommController {
         returnMap.put("selectKey", params.get("selectKey"));
 
         return returnMap;
+    }
+
+    @RequestMapping(value = "/comm/download/{atch_file_id}")
+    public ModelAndView commonFileDownload(HttpServletRequest request, HttpServletResponse response,
+                                           @PathVariable("atch_file_id") String atch_file_id, HttpSession session, ModelMap model) throws Exception {
+        Map<String, String> paramMap = new HashMap<String, String>();
+
+        CylFileVO vo = new CylFileVO();
+        vo.setAtch_file_id(atch_file_id);
+        vo.setFile_sn(1);
+
+        CylFileVO fileVO = fileService.selectAtchFileDetail(vo);
+
+        paramMap.put(CylFileDownView.FILE_PARAM_ORGINL_FILE_NAME, fileVO.getOrginl_file_nm());
+        paramMap.put(CylFileDownView.FILE_PARAM_UNIQ_FILE_NAME, fileVO.getStre_file_nm());
+        paramMap.put(CylFileDownView.FILE_PARAM_FILE_PATH, fileVO.getFile_stre_cours());
+
+        model.addAttribute(CylFileDownView.FILE_PARAM, paramMap);
+        return new ModelAndView("fileDownView", model);
+
+    }
+
+    @RequestMapping(value = "/comm/download/{atch_file_id}/{file_sn}")
+    public ModelAndView commonFileDownload(HttpServletRequest request, HttpServletResponse response,
+                                           @PathVariable("atch_file_id") String atch_file_id, @PathVariable("file_sn") String file_sn, HttpSession session, ModelMap model) throws Exception {
+        Map<String, String> paramMap = new HashMap<String, String>();
+
+        CylFileVO vo = new CylFileVO();
+        vo.setAtch_file_id(atch_file_id);
+        vo.setFile_sn(Integer.parseInt(file_sn));
+
+        CylFileVO fileVO = fileService.selectAtchFileDetail(vo);
+
+        paramMap.put(CylFileDownView.FILE_PARAM_ORGINL_FILE_NAME, fileVO.getOrginl_file_nm());
+        paramMap.put(CylFileDownView.FILE_PARAM_UNIQ_FILE_NAME, fileVO.getStre_file_nm());
+        paramMap.put(CylFileDownView.FILE_PARAM_FILE_PATH, fileVO.getFile_stre_cours());
+
+        model.addAttribute(CylFileDownView.FILE_PARAM, paramMap);
+        return new ModelAndView("fileDownView", model);
+
     }
 
     public static String readJSONStringFromRequest(HttpServletRequest request) {

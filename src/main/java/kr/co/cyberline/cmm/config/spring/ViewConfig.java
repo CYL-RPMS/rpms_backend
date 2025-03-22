@@ -1,4 +1,4 @@
-package kr.co.cyberline.cmm.config.springmvc;
+package kr.co.cyberline.cmm.config.spring;
 
 import kr.co.cyberline.cmm.web.view.CylFileDownView;
 import kr.co.cyberline.cmm.web.view.CylMappingJacksonJsonViewExtension;
@@ -8,7 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
 
 @Configuration
-public class WebMvcConfig {
+public class ViewConfig {
 
     @Bean
     public CylFileDownView fileDownView() {

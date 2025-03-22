@@ -8,9 +8,9 @@
 package kr.co.cyberline.pms.common.service;
 
 import egovframework.rte.fdl.cmmn.exception.FdlException;
+import jakarta.servlet.http.HttpServletRequest;
 import kr.co.cyberline.cmm.web.file.CylFileVO;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 

@@ -7,7 +7,7 @@ import javax.annotation.Resource;
 public abstract class CylAbstractDAO<T> implements CylIGenericDAO<T> {
     protected CylIBaseDAO baseDAO;
 
-    @Resource
+    @Resource(name = "baseDAO")
     public void setBaseDAO(CylIBaseDAO baseDAO) {
         this.baseDAO = baseDAO;
     }

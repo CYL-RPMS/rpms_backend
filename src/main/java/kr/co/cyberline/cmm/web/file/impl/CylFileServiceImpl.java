@@ -13,7 +13,7 @@ import org.springframework.util.CollectionUtils;
 
 @Service(value = "CylFileService")
 public class CylFileServiceImpl implements CylFileService {
-    @Resource
+    @Resource(name = "CylFileDAO")
     private CylFileDAO cylFileDAO;
 
     public CylFileServiceImpl() {
