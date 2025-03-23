@@ -15,10 +15,7 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.springframework.ui.ModelMap;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.io.BufferedReader;
@@ -37,24 +34,26 @@ public class CommController {
 
     @RequestMapping(value = "/comm/{command}/{namespace}/{queryid}")
     @ResponseBody
-    public Map<String, Object> commonApiMapping(HttpServletRequest request, HttpServletResponse response,
-                                         @PathVariable("command") String command, @PathVariable("namespace") String namespace,
-                                         @PathVariable("queryid") String queryid) throws JSONException, NoSuchAlgorithmException, SQLException {
+    public Map<String, Object> commonApiMapping(
+            @PathVariable("command") String command
+            ,@PathVariable("namespace") String namespace
+            ,@PathVariable("queryid") String queryid
+            ,@RequestParam Map<String, String> queryParams
+            ,@RequestBody(required = false) Map<String, Object> bodyParams) throws  NoSuchAlgorithmException, SQLException {
         Map<String, Object> params = new HashMap<>();
-        String jStr = readJSONStringFromRequest(request);
-        if (!request.getParameterNames().hasMoreElements() && StringUtils.isNotEmpty(jStr)) {
-            JSONObject json_obj = new JSONObject(jStr);
-            params = getJSONParameterMap(json_obj);
-        } else {
-            Enumeration enu = request.getParameterNames();
-            while (enu.hasMoreElements()) {
-                String param_name = (String) enu.nextElement();
-                params.put(param_name, request.getParameter(param_name));
-            }
+
+        // GET 요청에서 사용
+        if (queryParams != null) {
+            params.putAll(queryParams);
+        }
+
+        // JSON 바디 파라미터 추가 POST 요청에서 사용
+        if (bodyParams != null) {
+            params.putAll(bodyParams);
         }
 
         if (params.size() > 0 && params.get("pagingEnable") != null) {
-            CylPaginationSupport.setPaginationMap(request, params);
+            CylPaginationSupport.setPaginationMap(params);
         }
         if (params.get("encrypt") != null) {
             params.put("passwd", CylScrtyUtil.encryptPassword(params.get("login_id").toString(), params.get("passwd").toString()));
@@ -112,49 +111,4 @@ public class CommController {
 
     }
 
-    public static String readJSONStringFromRequest(HttpServletRequest request) {
-        StringBuffer json = new StringBuffer();
-        String line = null;
-        try {
-            BufferedReader reader = request.getReader();
-            while ((line = reader.readLine()) != null) {
-                json.append(line);
-            }
-        } catch (Exception e) {
-            System.out.println(e.toString());
-        }
-        return json.toString();
-    }
-
-    public static Map<String, Object> getJSONParameterMap(JSONObject json_obj) {
-        Map<String, Object> map = new HashMap<String, Object>();
-
-        Iterator it = json_obj.keys();
-
-        while (it.hasNext()) {
-            String key = (String) it.next();
-            if (json_obj.isNull(key)) {
-                continue;
-            }
-            try {
-                Object obj = json_obj.get(key);
-                if (obj instanceof JSONObject) {
-                    JSONObject json = (JSONObject) obj;
-                    map.put(key, getJSONParameterMap(json));
-                } else if (obj instanceof JSONArray) {
-                    JSONArray array = (JSONArray) obj;
-                    List list = new ArrayList();
-                    for (int i = 0; i < array.length(); i++) {
-                        list.add(getJSONParameterMap(array.getJSONObject(i)));
-                    }
-                    map.put(key, list);
-                } else {
-                    map.put(key, obj);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return map;
-    }
 }

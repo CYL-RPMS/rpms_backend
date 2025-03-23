@@ -34,6 +34,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .formLogin(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
+                    //jwt api 통과
+                    .requestMatchers("/api/auth/**").permitAll()
                     .anyRequest().permitAll())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
