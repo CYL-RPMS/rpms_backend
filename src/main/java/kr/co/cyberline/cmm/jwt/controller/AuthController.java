@@ -12,25 +12,25 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/auth/")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
     private final UserService userService;
 
-    @PostMapping("/auth/login")
+    @PostMapping("/login")
     public ResponseEntity<TokenVO> login(UserVO userVO) {
         return ResponseEntity.ok(authService.login(userVO));
     }
 
-    @PostMapping("/auth/refresh")
+    @PostMapping("/refresh")
     public ResponseEntity<TokenVO> refresh(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
         return ResponseEntity.ok(authService.refresh(refreshToken));
     }
 
-    @PostMapping("/auth/logout")
+    @PostMapping("/logout")
     public void logout(HttpServletRequest request) {
         userService.insertLogoutHist(request);
     }

@@ -119,7 +119,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         //api/validate는 클라이언트 url 검사, 나머지는 클라이언트에서 요청하는 api 검사
-        String requestUrl = request.getRequestURI().equals("/api/validate") ? request.getParameter("pathName") : request.getRequestURI();
+        String requestUrl = request.getRequestURI().equals("/api/auth/validate") ? request.getParameter("pathName") : request.getRequestURI();
 
         // URL 권한 체크
         for (ProgramManageVO vo : prgmList) {
@@ -151,6 +151,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } else if (new RegexRequestMatcher("/uat/usp/MenuList", null, false).matches(request)) {
             flag = true;
         } else if (new RegexRequestMatcher("/systemInitConfig.com", null, false).matches(request)) {
+            flag = true;
+        } else if (new RegexRequestMatcher("/common/cmmCodeList", null, false).matches(request)) {
             flag = true;
         } else if (new RegexRequestMatcher("\\A/error/.*\\Z", null, false).matches(request)) {
             flag = true;

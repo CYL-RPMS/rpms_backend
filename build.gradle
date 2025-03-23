@@ -42,7 +42,6 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	//	cyl-cmm :begin
-	implementation files("${projectDir}/src/main/resources/lib/j2ee.jar")
 	implementation files("${projectDir}/src/main/resources/lib/javax.annotation-api-1.3.2.jar")
 	implementation files("${projectDir}/src/main/resources/lib/commons-lang3-3.12.0.jar")
 	implementation files("${projectDir}/src/main/resources/lib/jettison-1.5.4.jar")

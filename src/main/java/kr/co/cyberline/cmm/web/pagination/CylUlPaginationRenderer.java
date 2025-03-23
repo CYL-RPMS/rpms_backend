@@ -1,6 +1,6 @@
 package kr.co.cyberline.cmm.web.pagination;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 public class CylUlPaginationRenderer extends CylAbstractUlPaginationRenderer {
     private ServletContext servletContext;
