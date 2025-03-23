@@ -1,30 +1,28 @@
 package kr.co.cyberline.cmm.controller;
 
-import io.micrometer.common.util.StringUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
+import kr.co.cyberline.cmm.jwt.security.JwtTokenProvider;
 import kr.co.cyberline.cmm.service.*;
 import kr.co.cyberline.cmm.util.sec.CylScrtyUtil;
 import kr.co.cyberline.cmm.web.file.CylFileService;
 import kr.co.cyberline.cmm.web.file.CylFileVO;
 import kr.co.cyberline.cmm.web.pagination.CylPaginationSupport;
 import kr.co.cyberline.cmm.web.view.CylFileDownView;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
+import lombok.RequiredArgsConstructor;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
-import java.io.BufferedReader;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.*;
 
 @RestController
+@RequiredArgsConstructor
 public class CommController {
+
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Resource(name = "commService")
     private CommService commService;
@@ -35,7 +33,8 @@ public class CommController {
     @RequestMapping(value = "/comm/{command}/{namespace}/{queryid}")
     @ResponseBody
     public Map<String, Object> commonApiMapping(
-            @PathVariable("command") String command
+            HttpServletRequest request
+            ,@PathVariable("command") String command
             ,@PathVariable("namespace") String namespace
             ,@PathVariable("queryid") String queryid
             ,@RequestParam Map<String, String> queryParams
@@ -53,11 +52,18 @@ public class CommController {
         }
 
         if (params.size() > 0 && params.get("pagingEnable") != null) {
-            CylPaginationSupport.setPaginationMap(params);
+            CylPaginationSupport.setPaginationMap(request,params);
         }
         if (params.get("encrypt") != null) {
             params.put("passwd", CylScrtyUtil.encryptPassword(params.get("login_id").toString(), params.get("passwd").toString()));
         }
+
+        //사용자 토큰 검사
+        String token = jwtTokenProvider.resolveToken(request);
+        boolean valid = jwtTokenProvider.validateToken(token);
+        params.put("login_user_id", valid ? jwtTokenProvider.getUserIdFromToken(token) : "GUEST");
+        params.put("login_user_loginId", valid ? jwtTokenProvider.getLoginIdFromToken(token) :"GUEST");
+        params.put("login_author_id", valid ? jwtTokenProvider.getAuthorIdFromToken(token) : "GUEST");
 
         params.put("command", command);
         params.put("namespace", namespace);
@@ -72,34 +78,30 @@ public class CommController {
     }
 
     @RequestMapping(value = "/comm/download/{atch_file_id}")
-    public ModelAndView commonFileDownload(HttpServletRequest request, HttpServletResponse response,
-                                           @PathVariable("atch_file_id") String atch_file_id, HttpSession session, ModelMap model) throws Exception {
+    public ModelAndView commonFileDownload(@PathVariable("atch_file_id") String atch_file_id, ModelMap model) throws Exception {
         Map<String, String> paramMap = new HashMap<String, String>();
 
         CylFileVO vo = new CylFileVO();
         vo.setAtch_file_id(atch_file_id);
         vo.setFile_sn(1);
 
-        CylFileVO fileVO = fileService.selectAtchFileDetail(vo);
-
-        paramMap.put(CylFileDownView.FILE_PARAM_ORGINL_FILE_NAME, fileVO.getOrginl_file_nm());
-        paramMap.put(CylFileDownView.FILE_PARAM_UNIQ_FILE_NAME, fileVO.getStre_file_nm());
-        paramMap.put(CylFileDownView.FILE_PARAM_FILE_PATH, fileVO.getFile_stre_cours());
-
-        model.addAttribute(CylFileDownView.FILE_PARAM, paramMap);
-        return new ModelAndView("fileDownView", model);
+        return getModelAndView(model, paramMap, vo);
 
     }
 
     @RequestMapping(value = "/comm/download/{atch_file_id}/{file_sn}")
-    public ModelAndView commonFileDownload(HttpServletRequest request, HttpServletResponse response,
-                                           @PathVariable("atch_file_id") String atch_file_id, @PathVariable("file_sn") String file_sn, HttpSession session, ModelMap model) throws Exception {
+    public ModelAndView commonFileDownload(@PathVariable("atch_file_id") String atch_file_id, @PathVariable("file_sn") String file_sn, ModelMap model) throws Exception {
         Map<String, String> paramMap = new HashMap<String, String>();
 
         CylFileVO vo = new CylFileVO();
         vo.setAtch_file_id(atch_file_id);
         vo.setFile_sn(Integer.parseInt(file_sn));
 
+        return getModelAndView(model, paramMap, vo);
+
+    }
+
+    private ModelAndView getModelAndView(ModelMap model, Map<String, String> paramMap, CylFileVO vo) {
         CylFileVO fileVO = fileService.selectAtchFileDetail(vo);
 
         paramMap.put(CylFileDownView.FILE_PARAM_ORGINL_FILE_NAME, fileVO.getOrginl_file_nm());
@@ -108,7 +110,6 @@ public class CommController {
 
         model.addAttribute(CylFileDownView.FILE_PARAM, paramMap);
         return new ModelAndView("fileDownView", model);
-
     }
 
 }

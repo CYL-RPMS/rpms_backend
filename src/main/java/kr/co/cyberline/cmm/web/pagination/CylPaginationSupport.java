@@ -26,7 +26,7 @@ public class CylPaginationSupport {
         return pagination;
     }
 
-    public static CylPaginationInfoExtension setPaginationMap(Map<String, Object> paramMap) {
+    public static CylPaginationInfoExtension setPaginationMap(HttpServletRequest request, Map<String, Object> paramMap) {
         CylPaginationInfoExtension pagination = new CylPaginationInfoExtension(paramMap);
         pagination.createCustomMap();
         return pagination;
