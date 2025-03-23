@@ -27,16 +27,16 @@ public class AuthService {
 
     @Transactional
     public TokenVO login(UserVO userVO) {
-        String userId = userVO.getUser_id();
+        String loginId = userVO.getLogin_id();
         String userPwd = userVO.getPasswd();
 
-        if ( CylStringUtil.isNotEmpty(userId) && CylStringUtil.isNotEmpty(userPwd) ) {
+        if ( CylStringUtil.isNotEmpty(loginId) && CylStringUtil.isNotEmpty(userPwd) ) {
 
-            logger.info("로그인 ID : " + userId);
+            logger.info("로그인 ID : " + loginId);
             logger.info("로그인 PWD : " + userPwd);
 
             try {
-                userVO = userService.actionLogin(new UserVO(userId, CylScrtyUtil.encryptPassword(userId,userPwd)));
+                userVO = userService.actionLogin(new UserVO(loginId, CylScrtyUtil.encryptPassword(loginId,userPwd)));
             } catch(NoSuchAlgorithmException e) {
                 logger.error("로그인 시도 사용자 유효 검증 시 비밀번호 암호화 부분 오류 발생!");
                 logger.error(e.getMessage());
@@ -48,7 +48,7 @@ public class AuthService {
                 logger.error(e.getMessage());
             }
 
-            if (userVO == null) {
+            if (userVO.getUser_id() == null) {
                 logger.info("사용자 인증에 실패 하였습니다.");
                 throw new BadCredentialsException("사용자 인증에 실패 하였습니다.");
             }
@@ -58,6 +58,7 @@ public class AuthService {
 
             String accessToken = jwtTokenProvider.createAccessToken(userVO);
             String refreshToken = jwtTokenProvider.createRefreshToken();
+            userVO.setRefresh_token(refreshToken);
 
             // Save refreshToken to DB
             userService.updateRefreshToken(userVO);

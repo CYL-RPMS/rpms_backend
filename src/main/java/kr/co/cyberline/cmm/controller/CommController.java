@@ -10,6 +10,7 @@ import kr.co.cyberline.cmm.web.file.CylFileVO;
 import kr.co.cyberline.cmm.web.pagination.CylPaginationSupport;
 import kr.co.cyberline.cmm.web.view.CylFileDownView;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
@@ -32,7 +33,7 @@ public class CommController {
 
     @RequestMapping(value = "/comm/{command}/{namespace}/{queryid}")
     @ResponseBody
-    public Map<String, Object> commonApiMapping(
+    public ResponseEntity<Map<String, Object>> commonApiMapping(
             HttpServletRequest request
             ,@PathVariable("command") String command
             ,@PathVariable("namespace") String namespace
@@ -74,7 +75,7 @@ public class CommController {
         returnMap.put(params.get("command").toString(), commService.commonApi(params));
         returnMap.put("selectKey", params.get("selectKey"));
 
-        return returnMap;
+        return ResponseEntity.ok(returnMap);
     }
 
     @RequestMapping(value = "/comm/download/{atch_file_id}")

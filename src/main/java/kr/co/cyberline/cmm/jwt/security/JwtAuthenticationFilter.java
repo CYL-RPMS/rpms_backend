@@ -145,11 +145,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public boolean isSkip(HttpServletRequest request) {
         boolean flag = false;
 
-        if (new RegexRequestMatcher("\\A/api/auth/refresh\\Z", null, false).matches(request)) {
+        if (new RegexRequestMatcher("/api/auth/login", null, false).matches(request)) {
             flag = true;
-        } else if (new RegexRequestMatcher("\\A/uat/userLogin.*\\.do.*\\Z", null, false).matches(request)) {
+        } else if (new RegexRequestMatcher("/api/auth/refresh", null, false).matches(request)) {
             flag = true;
-        } else if (new RegexRequestMatcher("\\A/uat/usp/userMenuList.do*\\Z", null, false).matches(request)) {
+        } else if (new RegexRequestMatcher("/uat/usp/MenuList", null, false).matches(request)) {
             flag = true;
         } else if (new RegexRequestMatcher("\\A/error/.*\\Z", null, false).matches(request)) {
             flag = true;

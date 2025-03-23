@@ -17,13 +17,16 @@ import kr.co.cyberline.pms.sys.mnu.service.MenuManageService;
 import kr.co.cyberline.pms.sys.mnu.service.MenuMap;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections.CollectionUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.annotation.Resource;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -53,7 +56,7 @@ public class UserSupportController {
      * @return mav
      * @
      */
-    @RequestMapping(value = "/userMenuList.*")
+    @RequestMapping(value = "/userMenuList")
     public ModelAndView userLoginMain(
             HttpServletRequest request
             , HttpServletResponse response
@@ -73,10 +76,10 @@ public class UserSupportController {
         return new ModelAndView("jsonViewExtension", model);
     }
 
-    @RequestMapping(value = "/MenuList.*")
-    public ModelAndView MenuList(
+    @RequestMapping(value = "/MenuList")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> MenuList(
             HttpServletRequest request
-            , ModelMap model
             , @ModelAttribute("menuManageVO") MenuManageVO menuManageVO
     ) {
         UserVO userVO = new UserVO();
@@ -96,8 +99,10 @@ public class UserSupportController {
         MenuMap.getInstance().setMenuList(userVO.getUser_id(), menuList);
         MenuMap.getInstance().setMenuList(request.getRequestedSessionId(), menuList);
 
-        model.addAttribute(CmmVar.MENU_LIST, menuList);
-        model.addAttribute(CmmVar.MENU_MAP, MenuMap.getInstance().getMenuList(userVO.getUser_id(), 1, "N"));
-        return new ModelAndView("jsonView", model);
+        Map<String, Object> returnMap = new HashMap<>();
+
+        returnMap.put(CmmVar.MENU_LIST, menuList);
+        returnMap.put(CmmVar.MENU_MAP, MenuMap.getInstance().getMenuList(userVO.getUser_id(), 1, "N"));
+        return ResponseEntity.ok(returnMap);
     }
 }
