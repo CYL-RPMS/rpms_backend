@@ -15,6 +15,7 @@
         	   ,A.CRTE_DTTM
         	   ,A.UPDT_USER_ID
         	   ,A.UPDT_DTTM
+        	   ,B.AUTHOR_ID
         	   ,B.AUTHOR_NM_KR
                ,C.IS_LOCK
           FROM CYL_CMM_0100_VN A LEFT OUTER JOIN (SELECT AA.USER_ID

@@ -41,6 +41,7 @@ public class JwtTokenProvider {
         Claims claims = Jwts.claims().setSubject(userVO.getLogin_id());
         claims.put("user_nm", userVO.getUser_nm());
         claims.put("user_id", userVO.getUser_id());
+        claims.put("login_id", userVO.getLogin_id());
         claims.put("author_id", userVO.getAuthor_id());
 
         Date now = new Date();

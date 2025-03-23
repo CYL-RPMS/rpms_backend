@@ -34,7 +34,7 @@ import java.util.Map;
  * @version 1.0
  * @since 2015. 11. 23
  */
-@Service("CommonService")
+@Service("commonService")
 public class CommonServiceImpl implements CommonService {
 
     @Value("${system.storage.tempPath}")

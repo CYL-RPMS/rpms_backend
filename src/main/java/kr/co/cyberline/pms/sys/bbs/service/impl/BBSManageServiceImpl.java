@@ -53,7 +53,7 @@ public class BBSManageServiceImpl implements BBSManageService {
     @Resource(name = "bbsManageDAO")
     private BBSManageDAO bbsManageDAO;
 
-    @Resource(name = "CommonService")
+    @Resource(name = "commonService")
     private CommonService commonService;
 
 
